@@ -9,7 +9,7 @@ $err='';$done='';$owners=[];
 try{
     start_session();
     // Audit C19: recovery is OFF unless the owner creates private/ENABLE-OWNER-RESET in File Manager (delete it, or this file, after use).
-    if(!is_file(__DIR__.'/private/ENABLE-OWNER-RESET')){ http_response_code(404); fail('Owner recovery is disabled. To use it, create an empty file private/ENABLE-OWNER-RESET in Hostinger File Manager, then reload. Delete it again afterwards.'); }
+    if(!is_file(private_root().'/ENABLE-OWNER-RESET')){ http_response_code(404); fail('Owner recovery is disabled. To use it, create an empty file private/ENABLE-OWNER-RESET in Hostinger File Manager, then reload. Delete it again afterwards.'); }
     if(!configured()||!installed()) fail('The CRM is not installed yet.');
     if($_SERVER['REQUEST_METHOD']==='POST'){
         check_csrf((string)($_POST['csrf']??''));

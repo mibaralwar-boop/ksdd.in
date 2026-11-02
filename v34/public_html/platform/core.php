@@ -37,7 +37,7 @@ function ptx(callable $fn): mixed {
 /* ------------------------------ time ------------------------------ */
 function p_now(): DateTimeImmutable {
     // Staging hook (same rule as f3_now): only when config explicitly enables a fake clock AND db names say staging/test.
-    $c = cfg(); $f = !empty($c['f3_allow_fake_clock']) ? (getenv('P_FAKE_NOW') ?: (is_file(dirname(__DIR__) . '/private/p_fake_now.txt') ? trim((string)file_get_contents(dirname(__DIR__) . '/private/p_fake_now.txt')) : '')) : '';
+    $c = cfg(); $f = !empty($c['f3_allow_fake_clock']) ? (getenv('P_FAKE_NOW') ?: (is_file(private_root() . '/p_fake_now.txt') ? trim((string)file_get_contents(private_root() . '/p_fake_now.txt')) : '')) : '';
     return $f !== '' ? new DateTimeImmutable($f, new DateTimeZone('UTC')) : new DateTimeImmutable('now', new DateTimeZone('UTC'));
 }
 function p_utc(?DateTimeImmutable $d = null): string { return ($d ?? p_now())->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'); }
@@ -109,7 +109,7 @@ function p_outbox_run(int $max = 50): array {
     }
     return $done;
 }
-function p_private(string $sub): string { $d = dirname(__DIR__) . '/private/platform/' . trim($sub, '/'); if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
+function p_private(string $sub): string { $d = private_root() . '/platform/' . trim($sub, '/'); if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
 function p_base_url(): string { return rtrim((string)(pcfg()['base_url'] ?? ''), '/'); }
 
 /* ------------------------------ i18n (English / Hindi) ------------------------------ */

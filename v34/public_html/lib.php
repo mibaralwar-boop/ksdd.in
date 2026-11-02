@@ -24,7 +24,23 @@ function cfg(): array { static $c; if ($c !== null) return $c;
     // Test harness only: F360_CONFIG may point at a staging config, and only for the CLI and PHP's built-in dev server (never LiteSpeed/Apache).
     $alt = in_array(PHP_SAPI, ['cli', 'cli-server'], true) ? (string)getenv('F360_CONFIG') : '';
     if ($alt !== '' && is_file($alt)) { $c = require $alt; if (!preg_match('/(staging|test)/', (string)(!empty($c['single_db']) ? ($c['db_name'] ?? '') : ($c['platform']['db']['db_name'] ?? $c['db_name'] ?? '')))) { $c = []; fwrite(STDERR, "F360_CONFIG refused: database names must contain staging/test\n"); } return $c; }
-    return $c = (is_file(__DIR__.'/config.php') ? require __DIR__.'/config.php' : []); }
+    // V34: secrets live OUTSIDE the web root: …/domains/<domain>/ksdd_private/config.php (sibling of public_html).
+    // public_html/config.php is still read for backward compatibility only (denied by .htaccess); move it out.
+    // A web root nested inside another site (e.g. staging.ksdd.in in public_html/staging) names its private folder with
+    // SetEnv F360_PRIVATE_DIR /home/…/staging_private in its .htaccess (CLI: export F360_PRIVATE_DIR=…).
+    $env = (string)getenv('F360_PRIVATE_DIR');
+    foreach ([$env !== '' ? rtrim($env, '/').'/config.php' : '', dirname(__DIR__).'/ksdd_private/config.php', __DIR__.'/config.php'] as $f) if ($f !== '' && is_file($f)) return $c = require $f;
+    return $c = []; }
+/** V34: ONE resolver for private storage (uploads, backups, exports, imports, logs, platform files, clocks): the
+ *  …/ksdd_private folder outside the web root when it exists (or config 'private_dir'); legacy public_html/private otherwise. */
+function private_root(): string {
+    static $r; if ($r !== null) return $r;
+    $c = cfg(); if (!empty($c['private_dir']) && is_dir((string)$c['private_dir'])) return $r = rtrim((string)$c['private_dir'], '/');
+    $env = (string)getenv('F360_PRIVATE_DIR'); if ($env !== '' && is_dir($env)) return $r = rtrim($env, '/');
+    return $r = is_dir(dirname(__DIR__).'/ksdd_private') ? dirname(__DIR__).'/ksdd_private' : __DIR__.'/private';
+}
+/** True when private storage is outside the document root (health checks warn otherwise). */
+function private_outside_webroot(): bool { return !str_starts_with(realpath(private_root()) ?: private_root(), (realpath(__DIR__) ?: __DIR__) . '/'); }
 function configured(): bool { $c=cfg(); if(!empty($c['platform']['enabled'])&&empty($c['single_db'])&&!empty($c['platform']['db']['db_name'])) return true; /* V29 layout; V31 uses the main db_* below */ return !empty($c['db_name']) && !str_starts_with($c['db_name'],'YOUR_') && !empty($c['db_user']) && !str_starts_with($c['db_user'],'YOUR_'); }
 /** Typed-in text and passed-in values both get the database's own collation (avoids error 1267 on hosts whose connection default differs). */
 function db_session_collation(PDO $p): void { $col=(string)$p->query('SELECT @@collation_database')->fetchColumn(); $p->exec(preg_match('/^utf8mb4_[a-z0-9_]+$/',$col) ? "SET NAMES utf8mb4 COLLATE $col" : "SET NAMES utf8mb4"); }
@@ -53,12 +69,16 @@ function db_switch(?array $target): void {
 function db_connect_target(array $t): PDO {
     $host=(string)($t['db_host']??'localhost');
     if (!preg_match('/^[a-zA-Z0-9.:-]+$/',$host) || !preg_match('/^[a-zA-Z0-9_]+$/',(string)($t['db_name']??''))) fail('Invalid database configuration.',503);
-    return new MtPDO('mysql:host='.$host.';port='.(int)($t['db_port']??3306).';dbname='.$t['db_name'].';charset=utf8mb4',(string)$t['db_user'],(string)$t['db_password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_STRINGIFY_FETCHES=>false]);
+    $p = new MtPDO('mysql:host='.$host.';port='.(int)($t['db_port']??3306).';dbname='.$t['db_name'].';charset=utf8mb4',(string)$t['db_user'],(string)$t['db_password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_STRINGIFY_FETCHES=>false]);
+    // V34: a brand-new connection starts with NO restaurant scope — clears any stale context row left behind by a crashed
+    // process whose (recycled) connection id we now hold. Views return zero rows until mt_set_scope() binds a verified scope.
+    if (mt_enabled()) { try { $p->rawExec('DELETE FROM '.MT_PREFIX.'ctx WHERE conn_id=CONNECTION_ID()'); } catch (PDOException $e) { if ((int)($e->errorInfo[1]??0)!==1146) throw $e; } }
+    return $p;
 }
 /** Private file storage for the CURRENT branch: private/ for the original single restaurant, private/tenants/<t>/<b>/ for every other branch. */
 function storage_dir(string $sub): string {
     $pre=(string)(db_target()['storage']??''); if ($pre!=='' && !preg_match('#^tenants/[a-z0-9]{6,40}/[a-z0-9]{6,40}$#',$pre)) fail('Invalid storage scope.',503);
-    $d=__DIR__.'/private/'.($pre!==''?$pre.'/':'').trim($sub,'/'); if(!is_dir($d)) @mkdir($d,0750,true); return $d;
+    $d=private_root().'/'.($pre!==''?$pre.'/':'').trim($sub,'/'); if(!is_dir($d)) @mkdir($d,0750,true); return $d;
 }
 function db(): PDO {
     if (!empty($GLOBALS['F360_PDO'])) return $GLOBALS['F360_PDO'];
@@ -170,8 +190,8 @@ function transaction(callable $fn): mixed { db()->beginTransaction();try{$v=$fn(
 function csv_cell(mixed $v): string { $s=(string)($v??'');if(preg_match('/^[=+@\-\t\r]/',$s))$s="'".$s;return '"'.str_replace('"','""',$s).'"'; }
 function error_response(Throwable $e): never {
     if($e instanceof PDOException){$code=(int)($e->errorInfo[1]??0);if($code===1062)send(['error'=>'This reference already exists. No duplicate was added.'],409);if($code===1452)send(['error'=>'The linked record does not exist.'],400);if(in_array($code,[1205,1213],true))send(['error'=>'Another entry is being saved. Please try again.'],409);$ref=strtoupper(bin2hex(random_bytes(3)));$msg=preg_replace('/\s+/',' ',(string)($e->errorInfo[2]??$e->getMessage()));error_log('Dhaba Desk database error '.$ref.': '.$e->getCode().'/'.$code.' '.$msg);
-        $ld=__DIR__.'/private/logs';if(is_dir($ld)||@mkdir($ld,0750,true)){@file_put_contents($ld.'/db-errors.log',gmdate('Y-m-d H:i:s').' ref '.$ref.' '.$e->getCode().'/'.$code.' '.mb_substr($msg,0,400).' | '.($_SERVER['REQUEST_METHOD']??'CLI').' '.mb_substr(preg_replace('/[^\w=&\/.?-]/','',(string)($_GET['route']??'')),0,60).PHP_EOL,FILE_APPEND|LOCK_EX);}
-        send(['error'=>'Database operation failed (code '.$code.', ref '.$ref.'). Send this message to support; details are in private/logs/db-errors.log.'],503);}
+        $ld=private_root().'/logs';if(is_dir($ld)||@mkdir($ld,0750,true)){@file_put_contents($ld.'/db-errors.log',gmdate('Y-m-d H:i:s').' ref '.$ref.' '.$e->getCode().'/'.$code.' '.mb_substr($msg,0,400).' | '.($_SERVER['REQUEST_METHOD']??'CLI').' '.mb_substr(preg_replace('/[^\w=&\/.?-]/','',(string)($_GET['route']??'')),0,60).PHP_EOL,FILE_APPEND|LOCK_EX);}
+        send(['error'=>'Database operation failed (code '.$code.', ref '.$ref.'). Send this message to support; details are in the private logs/db-errors.log.'],503);}
     if($e->getCode()===402)send(['error'=>$e->getMessage(),'code'=>'SUBSCRIPTION_READ_ONLY'],402);
     $status=in_array($e->getCode(),[400,401,403,404,405,409,410,413,422,429,502,503],true)?$e->getCode():400;
     $message=$e instanceof JsonException?'Invalid request JSON.':($e instanceof RuntimeException?$e->getMessage():'The request could not be completed. Check the server error log.');

@@ -15,7 +15,7 @@ $bad = 0; $t0 = p_utc();
 try {
     $r = ['reminders' => billing_reminders(), 'mail' => p_outbox_run(100), 'push' => push_send(200)];
     // V31: forget scope rows of finished connections (READ COMMITTED + LIMIT: never blocks live requests)
-    pdb()->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'); $r['ctx_purged'] = prun('DELETE FROM mt_ctx WHERE set_at < UTC_TIMESTAMP() - INTERVAL 1 DAY LIMIT 5000')->rowCount(); pdb()->exec('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+    pdb()->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'); $r['ctx_purged'] = (pdb() instanceof MtPDO) ? mt_purge_stale_ctx(pdb()) : 0; // V34: internal helper (app SQL may not name mt_ctx) pdb()->exec('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
     prun("UPDATE p_orders SET status='expired' WHERE status='created' AND created_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 2 DAY)");
     prun("INSERT INTO p_job_runs(job,started_at,finished_at,status,message) VALUES('platform',?,UTC_TIMESTAMP(),'ok',?)", $t0, json_encode($r));
     echo 'platform ok ' . json_encode($r) . "\n";

@@ -6,7 +6,7 @@ declare(strict_types=1);
 // Usage: php tests/run_tests.php      (refuses to run unless config db_name contains 'staging' or 'test')
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 chdir(dirname(__DIR__));
-passthru(PHP_BINARY . ' tests/staging_setup.php', $rc); if ($rc) exit($rc);
+if (!getenv('F360_SKIP_SETUP')) { passthru(PHP_BINARY . ' tests/staging_setup.php', $rc); if ($rc) exit($rc); } // V34: mt mode builds + converts first (tests/run_tests_mt.sh)
 require 'lib.php';
 if (!preg_match('/(staging|test)/', (string)cfg()['db_name'])) exit("Refusing to run on non-staging database\n");
 if (empty(cfg()['f3_allow_fake_clock'])) exit("config.php needs 'f3_allow_fake_clock'=>true on staging\n");

@@ -187,7 +187,7 @@ function f3_now(): DateTimeImmutable {
     // Staging/test hook only: honoured solely when config.php explicitly enables it. Production config never has it.
     if (!empty($c['f3_allow_fake_clock'])) {
         $f = getenv('F3_FAKE_NOW') ?: ($c['f3_fake_now'] ?? '');
-        if ($f === '' && is_file(dirname(__DIR__) . '/private/f3_fake_now.txt')) $f = trim((string)file_get_contents(dirname(__DIR__) . '/private/f3_fake_now.txt'));
+        if ($f === '' && is_file(private_root() . '/f3_fake_now.txt')) $f = trim((string)file_get_contents(private_root() . '/f3_fake_now.txt'));
         if ($f !== '') return new DateTimeImmutable($f, $tz);
     }
     return new DateTimeImmutable('now', $tz);

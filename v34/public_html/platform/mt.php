@@ -37,6 +37,7 @@ final class MtPDO extends PDO {
         return $this->mtTables;
     }
     private function mtSql(string $sql): string {
+        if (mt_enabled()) mt_guard($sql); // V34: no app statement may name a base table (mt_*) or the context table, ever
         if (!mt_enabled() && $this->mtBranch === 0) return $sql;
         $reg = $this->mtRegistry(); if (!$reg) return $sql;
         if (!$this->mtAllowDdl && mt_is_ddl($sql)) { mt_ddl($this, $sql); return 'SELECT 1 FROM DUAL WHERE 0'; }
@@ -59,13 +60,65 @@ function mt_set_scope(PDO $p, int $tenantId, int $branchId): void {
     if ($p->inTransaction()) fail('Cannot change restaurant/branch inside an open transaction.', 500);
     if (($tenantId === 0) !== ($branchId === 0) || $tenantId < 0 || $branchId < 0) fail('Invalid restaurant/branch scope.', 503);
     $p->rawExec('REPLACE INTO ' . MT_PREFIX . 'ctx(conn_id,tenant_id,branch_id,set_at) VALUES(CONNECTION_ID(),' . $tenantId . ',' . $branchId . ',UTC_TIMESTAMP())');
+    // V34: read back — the database must hold exactly this scope for THIS connection, otherwise refuse (fail closed).
+    $chk = $p->rawQuery('SELECT tenant_id,branch_id FROM ' . MT_PREFIX . 'ctx WHERE conn_id=CONNECTION_ID()')->fetch(PDO::FETCH_NUM);
+    if (!$chk || (int)$chk[0] !== $tenantId || (int)$chk[1] !== $branchId) { $p->mtTenant = 0; $p->mtBranch = 0; fail('Restaurant/branch scope could not be verified.', 503); }
     $p->mtTenant = $tenantId; $p->mtBranch = $branchId;
     static $registered = [];
     $oid = spl_object_id($p);
     if (!isset($registered[$oid])) { $registered[$oid] = true; register_shutdown_function(function () use ($p) { try { $p->rawExec('DELETE FROM ' . MT_PREFIX . 'ctx WHERE conn_id=CONNECTION_ID()'); } catch (Throwable $e) {} }); }
 }
 /** Read back what the DATABASE believes the scope is (tests / health). */
-function mt_db_scope(PDO $p): array { $r = $p->query('SELECT tenant_id,branch_id FROM ' . MT_PREFIX . 'ctx WHERE conn_id=CONNECTION_ID()')->fetch(PDO::FETCH_ASSOC); return $r ? ['tenant_id' => (int)$r['tenant_id'], 'branch_id' => (int)$r['branch_id']] : ['tenant_id' => 0, 'branch_id' => 0]; }
+function mt_db_scope(PDO $p): array { $r = ($p instanceof MtPDO ? $p->rawQuery('SELECT tenant_id,branch_id FROM ' . MT_PREFIX . 'ctx WHERE conn_id=CONNECTION_ID()') : $p->query('SELECT tenant_id,branch_id FROM ' . MT_PREFIX . 'ctx WHERE conn_id=CONNECTION_ID()'))->fetch(PDO::FETCH_ASSOC); return $r ? ['tenant_id' => (int)$r['tenant_id'], 'branch_id' => (int)$r['branch_id']] : ['tenant_id' => 0, 'branch_id' => 0]; }
+
+
+/* ------------------------------------------- V34 statement guard -------------------------------------------
+   The scoped views are only as strong as the context row behind them, and on shared hosting the runtime database user
+   necessarily has rights on the base tables and on mt_ctx. So EVERY statement the application sends through MtPDO is
+   checked before it reaches MySQL and refused if it
+     • names any base table / internal table (identifier starting with mt_ — e.g. mt_dd_users, mt_ctx, mt_tables), or
+     • contains a MySQL executable comment (slash-star-bang or slash-star-M-bang), which MySQL RUNS as SQL although it looks like a comment, or
+     • contains more than one statement.
+   Only platform/mt.php itself and tools/v31-convert.php use rawQuery()/rawExec() for base-table work. */
+final class MtGuardError extends RuntimeException {}
+function mt_guard(string $sql): void {
+    static $ok = [];
+    if (isset($ok[$sql])) return;
+    $n = strlen($sql); $i = 0;
+    while ($i < $n) {
+        $c = $sql[$i];
+        if ($c === "'" || $c === '"') { $i = mt_skip_quoted($sql, $i); continue; }
+        if ($c === '/' && ($sql[$i + 1] ?? '') === '*') {
+            $k = $sql[$i + 2] ?? '';
+            if ($k === '!' || (($k === 'M' || $k === 'm') && ($sql[$i + 3] ?? '') === '!')) throw new MtGuardError('Refused: executable comments are not allowed.', 500);
+            $e = strpos($sql, '*/', $i + 2); $i = $e === false ? $n : $e + 2; continue;
+        }
+        if ($c === '#' || ($c === '-' && ($sql[$i + 1] ?? '') === '-')) { $e = strpos($sql, "\n", $i); $i = $e === false ? $n : $e + 1; continue; }
+        if ($c === ';') { if (trim(substr($sql, $i + 1)) !== '' && !preg_match('/^\s*(--[^\n]*|#[^\n]*|\/\*.*?\*\/|\s)*$/s', substr($sql, $i + 1))) throw new MtGuardError('Refused: one statement at a time.', 500); $i++; continue; }
+        if ($c === '`') { $e = mt_skip_quoted($sql, $i); $id = str_replace('``', '`', substr($sql, $i + 1, $e - $i - 2)); if (stripos($id, MT_PREFIX) === 0) throw new MtGuardError('Refused: internal table ' . $id . ' is not accessible.', 500); $i = $e; continue; }
+        if (ctype_alpha($c) || $c === '_') {
+            $j = $i; while ($j < $n && (ctype_alnum($sql[$j]) || $sql[$j] === '_' || $sql[$j] === '$')) $j++;
+            if (($i === 0 || !ctype_alnum($sql[$i - 1])) && stripos(substr($sql, $i, $j - $i), MT_PREFIX) === 0) throw new MtGuardError('Refused: internal table ' . substr($sql, $i, $j - $i) . ' is not accessible.', 500);
+            $i = $j; continue;
+        }
+        $i++;
+    }
+    if (count($ok) > 5000) $ok = [];
+    $ok[$sql] = true;
+}
+/** V34: read-only counters for Super Admin / setup status (internal tables are not reachable through app SQL). */
+function mt_admin_stats(PDO $p): array {
+    if (!$p instanceof MtPDO) return ['tables' => 0, 'ctx_recent' => 0];
+    try { return ['tables' => (int)$p->rawQuery('SELECT COUNT(*) FROM ' . MT_PREFIX . 'tables')->fetchColumn(),
+                  'ctx_recent' => (int)$p->rawQuery('SELECT COUNT(*) FROM ' . MT_PREFIX . 'ctx WHERE set_at > UTC_TIMESTAMP() - INTERVAL 1 HOUR')->fetchColumn()]; }
+    catch (PDOException $e) { return ['tables' => 0, 'ctx_recent' => 0]; }
+}
+/** V34: forget context rows of connections that no longer exist (crash / killed process) so a recycled connection id can
+ *  never inherit a scope. Called by platform-cron.php; every new connection also resets its own row (db_connect_target). */
+function mt_purge_stale_ctx(MtPDO $p): int {
+    try { return (int)$p->rawExec('DELETE c FROM ' . MT_PREFIX . 'ctx c LEFT JOIN information_schema.PROCESSLIST pl ON pl.ID=c.conn_id WHERE pl.ID IS NULL'); }
+    catch (PDOException $e) { return (int)$p->rawExec('DELETE FROM ' . MT_PREFIX . 'ctx WHERE set_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)'); }
+}
 
 /* ------------------------------------------- SQL tokenizer helpers ------------------------------------------- */
 /** Position after whitespace and comments starting at $i. */

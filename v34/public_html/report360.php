@@ -72,7 +72,7 @@ function report_pdf(array $s): string {
 /* ---------- Closing image (PNG via GD). Summary + first transactions; the PDF carries every entry. ---------- */
 function report_png(array $s): string {
     if(!function_exists('imagecreatetruecolor')) fail('GD image extension is not enabled on this server; download the PDF instead.',503);
-    $font=__DIR__.'/private/fonts/DejaVuSans.ttf'; $bold=__DIR__.'/private/fonts/DejaVuSans-Bold.ttf'; $ttf=is_file($font)&&function_exists('imagettftext');
+    $font=(is_file(private_root().'/fonts/DejaVuSans.ttf')?private_root():__DIR__.'/private').'/fonts/DejaVuSans.ttf'; $bold=(is_file(private_root().'/fonts/DejaVuSans-Bold.ttf')?private_root():__DIR__.'/private').'/fonts/DejaVuSans-Bold.ttf'; $ttf=is_file($font)&&function_exists('imagettftext');
     $maxRows=34; $W=1600; $H=1000; $im=imagecreatetruecolor($W,$H);
     $bg=imagecolorallocate($im,250,250,246); $ink=imagecolorallocate($im,29,42,34); $green=imagecolorallocate($im,20,60,50); $muted=imagecolorallocate($im,110,120,105); $rule=imagecolorallocate($im,222,227,216); $white=imagecolorallocate($im,255,255,255); $red=imagecolorallocate($im,170,40,30);
     imagefilledrectangle($im,0,0,$W,$H,$bg); imagefilledrectangle($im,0,0,$W,92,$green);

@@ -1,9 +1,11 @@
 <?php
-// KSDD Finance 360 V31 — copy to config.php with Hostinger File Manager and fill in YOUR values. NEVER share config.php or put it in a ZIP.
+// Finance 360 V34 — PRODUCTION template (ksdd.in). Copy to  …/domains/ksdd.in/ksdd_private/config.php  — this folder is
+// OUTSIDE public_html, so it can never be downloaded. Fill in YOUR values. NEVER share config.php or put it in a ZIP.
+// Staging (staging.ksdd.in / u245900320_staging) uses config.staging.example.php instead.
 return [
     'db_host' => 'localhost',
     'db_port' => 3306,
-    'db_name' => 'YOUR_HOSTINGER_DATABASE_NAME',   // V31: the ONE database for every restaurant (staging uses its own separate database)
+    'db_name' => 'u245900320_ksdd',               // the ONE production database for every restaurant
     'db_user' => 'YOUR_HOSTINGER_DATABASE_USER',
     'db_password' => 'YOUR_DATABASE_PASSWORD',
     // Proof of ownership for install.php / reset-owner.php. 32+ random characters. Keep it: if 'pii_key' is NOT set,
@@ -43,7 +45,8 @@ return [
         'support_email' => 'support@ksdd.in',
         'signup_enabled' => false,                                      // ALSO needs Super Admin → Settings; open only after the V31 isolation gate passes on staging
         'admin_mfa_required' => true,
-        'mail' => ['mode' => 'smtp', 'smtp' => ['host' => 'smtp.hostinger.com', 'port' => 465, 'secure' => 'ssl', 'user' => 'noreply@your-domain.example', 'password' => 'MAILBOX_PASSWORD', 'from' => 'noreply@your-domain.example', 'from_name' => 'Finance 360']],
+        // 'fcm' => ['project_id' => '', 'service_account_file' => '/home/u245900320/domains/ksdd.in/ksdd_private/fcm-service-account.json'],
+        'mail' => ['mode' => 'smtp', 'smtp' => ['host' => 'smtp.hostinger.com', 'port' => 465, 'secure' => 'ssl', 'user' => 'noreply@ksdd.in', 'password' => 'MAILBOX_PASSWORD', 'from' => 'noreply@ksdd.in', 'from_name' => 'Finance 360']],
         // Payments stay OFF until you approve keys, prices, legal/tax details and the webhook (docs/SUBSCRIPTIONS_AND_BILLING.md)
         'billing' => ['provider' => 'razorpay', 'mode' => 'disabled', 'key_id' => '', 'key_secret' => '', 'webhook_secret' => '', 'live_approved' => false, 'allow_app_checkout' => false, 'app_may_link_web' => false],
     ],

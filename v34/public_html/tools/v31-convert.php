@@ -103,8 +103,8 @@ if (!$has('--no-closing-direct')) { $p->exec("INSERT INTO dd_settings(`key`,valu
 $bad = array_keys(array_filter($res, fn($r) => !$r['ok']));
 printf("\nConverted %d tables in %.1fs. Verification: %d OK, %d mismatch.\n", count($res), microtime(true) - $t0, count($res) - count($bad), count($bad));
 foreach ($bad as $t) echo "  MISMATCH $t {$res[$t]['before']} → {$res[$t]['after']}\n";
-@mkdir('private/logs', 0750, true);
-file_put_contents('private/logs/v31-convert-' . date('Ymd-His') . '.json', json_encode(['tenant' => $T, 'branch' => $B, 'branch_uid' => $buid, 'tables' => $res], JSON_PRETTY_PRINT));
+@mkdir(private_root() . '/logs', 0750, true);
+file_put_contents(private_root() . '/logs/v31-convert-' . date('Ymd-His') . '.json', json_encode(['tenant' => $T, 'branch' => $B, 'branch_uid' => $buid, 'tables' => $res], JSON_PRETTY_PRINT));
 if ($bad) { fwrite(STDERR, "STOP: mismatches found. Run --rollback or restore the backup, and report.\n"); exit(3); }
 echo "\nNow set in config.php:\n  'single_db' => true,\n  'single_db_scope' => ['tenant_id' => $T, 'branch_id' => $B, 'branch_uid' => '$buid'],\n";
 exit(0);

@@ -16,6 +16,6 @@ try {
         default:
             echo 'Platform schema v' . p_schema_version() . ' (code expects v' . P_SCHEMA . ")\n";
             foreach (prows('SELECT status,COUNT(*) n FROM p_tenants GROUP BY status') as $r) echo "tenants {$r['status']}: {$r['n']}\n";
-            echo 'admins: ' . pval('SELECT COUNT(*) FROM p_admins') . ' · provisioning: single database (V31) · scoped tables: ' . pval('SELECT COUNT(*) FROM mt_tables') . ' · signup open: ' . (p_signup_open() ? 'yes' : 'no') . ' · billing: ' . billing_gw()['mode'] . "\n";
+            echo 'admins: ' . pval('SELECT COUNT(*) FROM p_admins') . ' · provisioning: single database (V31) · scoped tables: ' . mt_admin_stats(pdb())['tables'] . ' · signup open: ' . (p_signup_open() ? 'yes' : 'no') . ' · billing: ' . billing_gw()['mode'] . "\n";
     }
 } catch (Throwable $e) { fwrite(STDERR, 'ERROR: ' . $e->getMessage() . "\n"); exit(1); }

@@ -148,7 +148,7 @@ case 'support':
     break;
 case 'system':
     echo '<h1>System</h1><div class="grid g2">' . ui_card('Platform', '<p>Schema v' . p_schema_version() . ' · PHP ' . PHP_VERSION . ' · DB ' . pe((string)pval('SELECT VERSION()')) . '<br>Provisioning: <b>single database</b> · Mail: <b>' . pe((string)(pcfg()['mail']['mode'] ?? 'log')) . '</b> · Sign-up: <b>' . (p_signup_open() ? 'open' : 'closed') . '</b></p>')
-       . ui_card('Database', '<p>One shared database for every restaurant (V31). Isolation: tenant_id + branch_id on every finance row, enforced by scoped views. Scoped tables: <b>' . (int)pval("SELECT COUNT(*) FROM mt_tables") . '</b> · open connections with a scope: <b>' . (int)pval('SELECT COUNT(*) FROM mt_ctx WHERE set_at > UTC_TIMESTAMP() - INTERVAL 1 HOUR') . '</b></p>') . '</div>';
+       . ui_card('Database', '<p>One shared database for every restaurant (V31). Isolation: tenant_id + branch_id on every finance row, enforced by scoped views. Scoped tables: <b>' . mt_admin_stats(pdb())['tables'] . '</b> · open connections with a scope: <b>' . mt_admin_stats(pdb())['ctx_recent'] . '</b></p>') . '</div>';
     echo ui_card('Jobs (last 30)', ui_table(['Job', 'Started', 'Status', 'Message'], array_map(fn($j) => [pe($j['job']), pe(p_ist($j['started_at'], 'j M, g:i A')), ui_badge($j['status'] === 'ok' ? 'ok' : 'bad', $j['status']), pe($j['message'] ?? '')], prows('SELECT * FROM p_job_runs ORDER BY id DESC LIMIT 30'))));
     echo ui_card('Email outbox', ui_table(['Status', 'Count'], array_map(fn($r) => [ui_badge($r['status']), (int)$r['n']], prows('SELECT status,COUNT(*) n FROM p_outbox GROUP BY status'))));
     break;

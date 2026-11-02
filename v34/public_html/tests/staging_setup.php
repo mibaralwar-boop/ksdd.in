@@ -12,6 +12,7 @@ if (!preg_match('/(staging|test)/', (string)($c['db_name'] ?? ''))) { fwrite(STD
 $pdo = db();
 // wipe staging DB
 $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+foreach ($pdo->query('SHOW FULL TABLES')->fetchAll(PDO::FETCH_NUM) as [$t, $ty]) if ($ty === 'VIEW') $pdo->exec("DROP VIEW `$t`"); // V34: converted (single-DB) test databases
 foreach ($pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) as $t) $pdo->exec("DROP TABLE `$t`");
 $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
 foreach (explode(';', file_get_contents('schema.sql')) as $sql) if (trim($sql) !== '') $pdo->exec($sql);
