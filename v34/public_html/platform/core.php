@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/lib.php';
 const P_TZ = 'Asia/Kolkata';
 const P_SCHEMA = 3;
 
+const P_ALL_MODULES = ['closing' => true, 'expenses' => true, 'staff' => true, 'payroll' => true, 'purchases' => true, 'stock' => true, 'reports' => true, 'integrations' => true];
 function pcfg(): array { return (array)(cfg()['platform'] ?? []); }
 /** V31: ONE database. In single-database mode the platform tables live in the same database as every restaurant's
  *  (scoped) finance tables, so the platform connection uses the main config.php credentials. */

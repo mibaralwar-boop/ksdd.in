@@ -78,7 +78,7 @@ function mtc_convert(MtPDO $p, int $tenant, int $branch, ?callable $log = null):
         $create = (string)$p->rawQuery("SHOW CREATE TABLE `$t`")->fetch(PDO::FETCH_NUM)[1];
         $orig = ['create' => $create, 'pk' => $pk, 'indexes' => mtc_indexes($p, $t), 'fks' => mtc_fks($p, $t),
                  'auto_increment' => (bool)$p->rawQuery("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=" . $p->quote($t) . " AND EXTRA LIKE '%auto_increment%'")->fetchColumn()];
-        $st = $p->prepare('INSERT INTO ' . MT_PREFIX . "tables(name,scope,original_json,converted_at,rows_before,hash_before) VALUES(?,'branch',?,UTC_TIMESTAMP(),?,?)");
+        $st = $p->rawPrepare('INSERT INTO ' . MT_PREFIX . "tables(name,scope,original_json,converted_at,rows_before,hash_before) VALUES(?,'branch',?,UTC_TIMESTAMP(),?,?)");
         $st->execute([$t, json_encode($orig, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), $n, $h]);
         $log("recorded $t ($n rows)");
     }
@@ -170,4 +170,34 @@ function mtc_rollback(MtPDO $p, int $tenant, int $branch, ?callable $log = null)
     if (!in_array(false, array_column($out, 'ok'), true)) { $p->rawExec('DROP TABLE ' . MT_PREFIX . 'tables'); $p->rawExec('DROP TABLE IF EXISTS ' . MT_PREFIX . 'ctx'); }
     $p->mtAllowDdl = false;
     return $out;
+}
+
+/* ------------------------------------------- V34 financial reconciliation -------------------------------------------
+   Business totals of the money / quantity tables, read through the SAME names before (legacy base tables) and after
+   (scoped views in the founding restaurant's scope): row count + SUM of every numeric non-key column. Must be identical. */
+const MTC_RECON = ['dd_ledger', 'dd_bk_txns', 'dd_bk_lines', 'dd_gl_journals', 'dd_gl_lines', 'dd_payroll', 'dd_sal_rows', 'dd_sal_entries', 'f3_sal_history', 'f3_pay_lines',
+    'f3_pay_payments', 'f3_staff_txns', 'f3_purchase_bills', 'f3_purchase_lines', 'f3_supplier_payments', 'f3_supplier_allocations', 'f3_purchase_returns', 'dd_bills', 'dd_bill_payments',
+    'f3_stock_moves', 'f3_stock_balances', 'dd_stock_moves', 'dd_stock_balances', 'dd_inventory', 'dd_bk_items', 'f3_closings', 'dd_counter_closes', 'dd_cash_counts', 'dd_handovers', 'f3_handovers',
+    'dd_employees', 'dd_suppliers', 'dd_bk_parties'];
+function mtc_reconcile(MtPDO $p): array {
+    $o = [];
+    foreach (MTC_RECON as $t) {
+        $base = mtc_exists($p, MT_PREFIX . $t, 'BASE TABLE') ? MT_PREFIX . $t : $t; // column list from the real table
+        if (!mtc_exists($p, $base, 'BASE TABLE')) continue;
+        $num = $p->rawQuery("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=" . $p->quote($base) . " AND DATA_TYPE IN ('int','bigint','smallint','mediumint','decimal') AND COLUMN_NAME NOT IN ('tenant_id','branch_id','id') AND COLUMN_NAME NOT LIKE '%\\_id' AND COLUMN_KEY<>'PRI' ORDER BY ORDINAL_POSITION")->fetchAll(PDO::FETCH_COLUMN);
+        $sel = array_merge(['COUNT(*) AS `rows`'], array_map(fn($c) => "COALESCE(SUM(`$c`),0) AS `$c`", $num));
+        $o[$t] = array_map('strval', $p->rawQuery('SELECT ' . implode(',', $sel) . " FROM `$t`")->fetch(PDO::FETCH_ASSOC)); // $t = table before, scoped view after
+    }
+    return $o;
+}
+/** Journal integrity: every posted GL journal balances (debits = credits), in the current scope. */
+function mtc_gl_balance(MtPDO $p): array {
+    try { $r = $p->rawQuery("SELECT COUNT(*) j, COALESCE(SUM(d<>c),0) bad, COALESCE(SUM(d),0) dr, COALESCE(SUM(c),0) cr FROM (SELECT l.journal_id, SUM(l.debit) d, SUM(l.credit) c FROM dd_gl_lines l GROUP BY l.journal_id) x")->fetch(PDO::FETCH_ASSOC); }
+    catch (PDOException $e) { return ['journals' => 0, 'unbalanced' => 0, 'debits' => '0', 'credits' => '0', 'note' => 'GL not installed']; }
+    return ['journals' => (int)$r['j'], 'unbalanced' => (int)$r['bad'], 'debits' => (string)$r['dr'], 'credits' => (string)$r['cr']];
+}
+function mtc_recon_compare(array $before, array $after): array {
+    $rows = []; $bad = 0;
+    foreach ($before as $t => $vals) foreach ($vals as $k => $v) { $a = $after[$t][$k] ?? null; $ok = $a === $v; if (!$ok) $bad++; $rows[] = [$t, $k, $v, $a, $ok]; }
+    return [$rows, $bad];
 }

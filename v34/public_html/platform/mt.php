@@ -52,6 +52,8 @@ final class MtPDO extends PDO {
     /** Raw access for the conversion tool only (no rewriting). */
     public function rawExec(string $sql): int|false { if (isset($GLOBALS['MT_SQL_LOG']) && preg_match('/^\s*(ALTER|CREATE|RENAME|DROP)\b/i', $sql)) $GLOBALS['MT_SQL_LOG'][] = $sql; return parent::exec($sql); }
     public function rawQuery(string $sql): PDOStatement|false { return parent::query($sql); }
+    /** Internal prepared statement without rewriting/guard (isolation module and conversion tool only). */
+    public function rawPrepare(string $sql): PDOStatement|false { return parent::prepare($sql); }
 }
 
 /** Bind THIS connection to one tenant + branch (or to nothing: 0/0 = sees no rows). Called by db()/pdb() only. */

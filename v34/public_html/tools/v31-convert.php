@@ -52,6 +52,9 @@ $amb = [];
 if (in_array('dd_bk_txns', $pre['tables'], true)) $amb['dd_bk_txns without date'] = (int)$p->rawQuery('SELECT COUNT(*) FROM dd_bk_txns WHERE date IS NULL')->fetchColumn();
 if (in_array('dd_employees', $pre['tables'], true)) { $amb['employees sharing a name (review, NOT merged)'] = (int)$p->rawQuery('SELECT COALESCE(SUM(n),0) FROM (SELECT COUNT(*) n FROM dd_employees GROUP BY LOWER(TRIM(name)) HAVING COUNT(*)>1) x')->fetchColumn(); }
 foreach ($amb as $k => $v) echo "  review: $k = $v\n";
+// V34: financial reconciliation baseline (row counts + totals of every money/quantity column) and GL debit = credit check
+$reconBefore = $pre['tables'] ? mtc_reconcile($p) : []; $glBefore = $pre['tables'] ? mtc_gl_balance($p) : [];
+if ($pre['tables']) echo 'Reconciliation baseline: ' . count($reconBefore) . ' tables, ' . array_sum(array_map('count', $reconBefore)) . " totals · GL journals {$glBefore['journals']}, unbalanced {$glBefore['unbalanced']}\n";
 if ($pre['issues']) { fwrite(STDERR, "Fix the issues above first.\n"); exit(1); }
 if (!$has('--apply')) { echo "\nDRY RUN — nothing was written. Re-run with --apply --i-have-a-backup after a full DB + private/ backup.\n"; exit(0); }
 if (!$has('--i-have-a-backup')) { fwrite(STDERR, "Refusing: take a full database + private/ backup and test-restore it, then add --i-have-a-backup.\n"); exit(1); }
@@ -97,14 +100,34 @@ if (!$has('--no-platform')) {
 if ($T <= 0 || $B <= 0) { fwrite(STDERR, "Need --tenant= and --branch= with --no-platform.\n"); exit(1); }
 if (!$pre['tables'] && $pre['converted']) { echo "Already converted (" . count($pre['converted']) . " scoped tables) — nothing to do. Use --verify right after a conversion, or --refresh-views after a restore.\n"; exit(0); }
 $t0 = microtime(true);
+// V34: the owner decision "closing is final on submit" (V29 §8) is applied BEFORE the original rows are hashed, so --verify and
+// --rollback compare exactly the state that was converted (V31 wrote it after verification → --verify/--rollback mismatched).
+if (!$has('--no-closing-direct') && $p->rawQuery("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='dd_settings' AND TABLE_TYPE='BASE TABLE'")->fetchColumn()) {
+    $prevCd = $p->rawQuery("SELECT value FROM dd_settings WHERE `key`='f3_closing_direct'")->fetchColumn();
+    if ($prevCd !== '1') { $p->rawExec("INSERT INTO dd_settings(`key`,value) VALUES('f3_closing_direct','1') ON DUPLICATE KEY UPDATE value='1'"); echo "Planned change applied before hashing: setting f3_closing_direct " . ($prevCd === false ? '(unset)' : $prevCd) . " → 1 (cashier finalises closing without admin approval)\n"; }
+}
 $res = mtc_convert($p, $T, $B, $log);
+// V34: same totals read through the scoped views of the founding restaurant — must be identical; GL must still balance
+$reconAfter = mtc_reconcile($p); $glAfter = mtc_gl_balance($p);
+[$reconRows, $reconBad] = mtc_recon_compare($reconBefore, $reconAfter);
+$glOk = $glAfter['unbalanced'] === $glBefore['unbalanced'] && $glAfter['debits'] === $glBefore['debits'] && $glAfter['credits'] === $glBefore['credits'];
 // V29 owner decision (closing final on submit) recorded for the founding branch
-if (!$has('--no-closing-direct')) { $p->exec("INSERT INTO dd_settings(`key`,value) VALUES('f3_closing_direct','1') ON DUPLICATE KEY UPDATE value='1'"); }
+// (V34: f3_closing_direct is now applied before hashing — see above)
 $bad = array_keys(array_filter($res, fn($r) => !$r['ok']));
 printf("\nConverted %d tables in %.1fs. Verification: %d OK, %d mismatch.\n", count($res), microtime(true) - $t0, count($res) - count($bad), count($bad));
 foreach ($bad as $t) echo "  MISMATCH $t {$res[$t]['before']} → {$res[$t]['after']}\n";
+printf("Financial reconciliation: %d totals compared, %d difference(s) · GL: %d journals, unbalanced %d → %d, debits %s/%s, credits %s/%s %s\n", count($reconRows), $reconBad,
+    $glAfter['journals'], $glBefore['unbalanced'] ?? 0, $glAfter['unbalanced'], $glBefore['debits'] ?? '', $glAfter['debits'], $glBefore['credits'] ?? '', $glAfter['credits'], $glOk ? 'OK' : 'CHANGED');
 @mkdir(private_root() . '/logs', 0750, true);
-file_put_contents(private_root() . '/logs/v31-convert-' . date('Ymd-His') . '.json', json_encode(['tenant' => $T, 'branch' => $B, 'branch_uid' => $buid, 'tables' => $res], JSON_PRETTY_PRINT));
+$stamp = date('Ymd-His');
+$md = "# V31 conversion reconciliation — {$c['db_name']} — " . gmdate('Y-m-d H:i') . " UTC\n\nFounding restaurant tenant $T / branch $B. Tables verified (row count + SHA-256 of every row): " . (count($res) - count($bad)) . '/' . count($res) . ".\n\n"
+    . "GL: {$glAfter['journals']} journals, unbalanced before {$glBefore['unbalanced']} / after {$glAfter['unbalanced']}, debits {$glAfter['debits']}, credits {$glAfter['credits']}.\n\n"
+    . ($reconBad || !$glOk ? "**RECONCILIATION FAILED — restore the backup.**\n\n" : "**Reconciliation OK: every total below is identical before (legacy table) and after (scoped view of the founding restaurant).**\n\n")
+    . "| Table | Column | Before | After | OK |\n|---|---|---:|---:|---|\n" . implode("\n", array_map(fn($r) => "| {$r[0]} | {$r[1]} | {$r[2]} | {$r[3]} | " . ($r[4] ? 'yes' : '**NO**') . ' |', $reconRows)) . "\n";
+file_put_contents(private_root() . "/logs/v31-convert-$stamp-reconciliation.md", $md);
+file_put_contents(private_root() . "/logs/v31-convert-$stamp.json", json_encode(['tenant' => $T, 'branch' => $B, 'branch_uid' => $buid, 'tables' => $res, 'reconciliation_before' => $reconBefore, 'reconciliation_after' => $reconAfter, 'gl_before' => $glBefore, 'gl_after' => $glAfter], JSON_PRETTY_PRINT));
+echo 'Reports: ' . private_root() . "/logs/v31-convert-$stamp.json (+ -reconciliation.md)\n";
+if ($reconBad || !$glOk) { fwrite(STDERR, "STOP: financial reconciliation differs. Run --rollback or restore the backup, and report.\n"); exit(3); }
 if ($bad) { fwrite(STDERR, "STOP: mismatches found. Run --rollback or restore the backup, and report.\n"); exit(3); }
 echo "\nNow set in config.php:\n  'single_db' => true,\n  'single_db_scope' => ['tenant_id' => $T, 'branch_id' => $B, 'branch_uid' => '$buid'],\n";
 exit(0);
