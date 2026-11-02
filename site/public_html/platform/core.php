@@ -14,7 +14,7 @@ function pcfg(): array { return (array)(cfg()['platform'] ?? []); }
 function pdb(): PDO {
     if (!empty($GLOBALS['P_PDO'])) return $GLOBALS['P_PDO'];
     // V30 single database: platform (p_*) tables live in the SAME database as the business tables unless a separate one is configured.
-    $c = (array)(pcfg()['db'] ?? []); if (empty($c['db_name']) && tenancy_shared()) $c = main_db_target();
+    $c = (array)(pcfg()['db'] ?? []); if (empty($c['db_name'])) $c = main_db_target();
     if (empty($c['db_name'])) fail('Platform database is not configured.', 503);
     $p = db_connect_target($c);
     db_session_collation($p); $p->exec("SET time_zone = '+00:00'");
