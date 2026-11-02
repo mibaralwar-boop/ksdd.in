@@ -1,0 +1,327 @@
+{
+ "month": "2026-10",
+ "from": "2026-10-01",
+ "to": "2026-10-31",
+ "by_type": {
+  "cash_access": {
+   "n": 9,
+   "total": 180000,
+   "paid": 180000
+  },
+  "expense": {
+   "n": 29,
+   "total": 4350000,
+   "paid": 4350000
+  },
+  "purchase": {
+   "n": 4,
+   "total": 3600000,
+   "paid": 1600000
+  },
+  "sale": {
+   "n": 87,
+   "total": 130935000,
+   "paid": 130935000
+  },
+  "transfer": {
+   "n": 2,
+   "total": 6000000,
+   "paid": 6000000
+  }
+ },
+ "expense_categories": [
+  {
+   "category": "Vegetable",
+   "group": "Food & kitchen",
+   "amount": 4350000,
+   "n": 29
+  }
+ ],
+ "expense_groups": {
+  "Food & kitchen": 4350000
+ },
+ "pl": {
+  "basis": "Cash & purchases view: purchases are counted when BOUGHT, not when consumed, so this is not accrual profit. Stock bought but not yet used is still an asset. Use Accounts → P&L (GL) for consumption-based profit.",
+  "sales": 130935000,
+  "other_income": 0,
+  "purchases": 3600000,
+  "food_cost_pct": 2.7,
+  "food_cost_basis": "purchases ÷ sales (not consumption)",
+  "staff_cost": 0,
+  "staff_cost_source": "Books (staff expenses + staff payments)",
+  "other_expenses": 4350000,
+  "profit": 122985000,
+  "not_in_pl": {
+   "cash_access": 180000,
+   "owner_in": 0,
+   "owner_draw": 0,
+   "old_dues_paid": 0,
+   "transfers": 6000000
+  }
+ },
+ "staff_recon": {
+  "books_staff_expense": 0,
+  "books_staff_payments": 0,
+  "register": null
+ },
+ "cash": {
+  "opening": 5000000,
+  "closing": 57465000
+ },
+ "accounts": [
+  {
+   "account": "Cash",
+   "opening": 5000000,
+   "closing": 57465000
+  },
+  {
+   "account": "Bank of India",
+   "opening": 0,
+   "closing": 6000000
+  },
+  {
+   "account": "UPI / Paytm",
+   "opening": 0,
+   "closing": 52200000
+  },
+  {
+   "account": "Card",
+   "opening": 0,
+   "closing": 14500000
+  },
+  {
+   "account": "Owner (Safik Home)",
+   "opening": 0,
+   "closing": 0
+  }
+ ],
+ "daily": [
+  {
+   "date": "2026-10-01",
+   "sale": 4501000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-02",
+   "sale": 4502000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-03",
+   "sale": 4503000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-04",
+   "sale": 4504000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-05",
+   "sale": 4505000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-06",
+   "sale": 4506000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-07",
+   "sale": 4507000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 900000
+  },
+  {
+   "date": "2026-10-08",
+   "sale": 4508000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-09",
+   "sale": 4509000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-10",
+   "sale": 4510000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-11",
+   "sale": 4511000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-12",
+   "sale": 4512000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-13",
+   "sale": 4513000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-14",
+   "sale": 4514000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 900000
+  },
+  {
+   "date": "2026-10-15",
+   "sale": 4515000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-16",
+   "sale": 4516000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-17",
+   "sale": 4517000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-18",
+   "sale": 4518000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-19",
+   "sale": 4519000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-20",
+   "sale": 4520000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-21",
+   "sale": 4521000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 900000
+  },
+  {
+   "date": "2026-10-22",
+   "sale": 4522000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-23",
+   "sale": 4523000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-24",
+   "sale": 4524000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-25",
+   "sale": 4525000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-26",
+   "sale": 4526000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-27",
+   "sale": 4527000,
+   "cash_access": 20000,
+   "expense": 150000,
+   "purchase": 0
+  },
+  {
+   "date": "2026-10-28",
+   "sale": 4528000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 900000
+  },
+  {
+   "date": "2026-10-29",
+   "sale": 4529000,
+   "cash_access": 0,
+   "expense": 150000,
+   "purchase": 0
+  }
+ ],
+ "status": "open",
+ "counted_cash": null,
+ "note": null,
+ "cash_acess_label": "Cash Acess",
+ "closings": {
+  "n": 0,
+  "done": 0,
+  "acess": 0,
+  "short": 0,
+  "acc_over": 0,
+  "acc_short": 0
+ },
+ "payroll": {
+  "status": "draft",
+  "payment_status": null,
+  "totals": {
+   "net": 0,
+   "carried_forward": 100000,
+   "paid": 0,
+   "balance": 100000
+  },
+  "gross": 0,
+  "ot_info": 0
+ }
+}

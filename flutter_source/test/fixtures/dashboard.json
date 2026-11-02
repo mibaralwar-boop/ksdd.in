@@ -1,0 +1,361 @@
+{
+ "business_date": "2026-11-02",
+ "target_date": "2026-11-01",
+ "cards": [],
+ "closing": {
+  "date": "2026-11-01",
+  "status": "not_started",
+  "sales": {
+   "cash": null,
+   "card": null,
+   "upi": null,
+   "total": 0
+  },
+  "expenses_total": 0,
+  "actual_cash": null,
+  "calc": {
+   "total_sale": 0,
+   "expected_cash": 57465000,
+   "operational_diff": null,
+   "operational_label": null,
+   "operational_abs": null,
+   "accounting_variance": null,
+   "accounting_label": null,
+   "accounting_abs": null,
+   "formula_operational": "Actual Cash − (Total Sale − Cash expenses & payouts)",
+   "formula_accounting": "Actual Cash − (Opening + Cash Sale + Other cash in − Cash paid out)",
+   "opening": 57465000
+  },
+  "locked": false
+ },
+ "last_month": {
+  "month": "2026-10",
+  "totals": {
+   "cash": 64235000,
+   "card": 14500000,
+   "upi": 52200000,
+   "other": 0,
+   "total": 130935000,
+   "expenses": 4350000,
+   "cash_acess": 0,
+   "cash_short": 0
+  }
+ },
+ "yesterday": null,
+ "mtd": {
+  "cash": 0,
+  "card": 0,
+  "upi": 0,
+  "other": 0,
+  "total": 0,
+  "expenses": 0,
+  "cash_acess": 0,
+  "cash_short": 0
+ },
+ "recent": [
+  {
+   "date": "2026-10-29",
+   "cash": 2229000,
+   "card": 500000,
+   "upi": 1800000,
+   "other": 0,
+   "expenses": 150000,
+   "source": "books",
+   "expense_count": 1,
+   "status": "legacy",
+   "total": 4529000
+  },
+  {
+   "date": "2026-10-28",
+   "cash": 2228000,
+   "card": 500000,
+   "upi": 1800000,
+   "other": 0,
+   "expenses": 150000,
+   "source": "books",
+   "expense_count": 1,
+   "status": "legacy",
+   "total": 4528000
+  },
+  {
+   "date": "2026-10-27",
+   "cash": 2227000,
+   "card": 500000,
+   "upi": 1800000,
+   "other": 0,
+   "expenses": 150000,
+   "source": "books",
+   "expense_count": 1,
+   "status": "legacy",
+   "total": 4527000
+  }
+ ],
+ "trend": [
+  {
+   "date": "2026-10-04",
+   "cash": 2204000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-05",
+   "cash": 2205000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-06",
+   "cash": 2206000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-07",
+   "cash": 2207000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-08",
+   "cash": 2208000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-09",
+   "cash": 2209000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-10",
+   "cash": 2210000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-11",
+   "cash": 2211000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-12",
+   "cash": 2212000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-13",
+   "cash": 2213000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-14",
+   "cash": 2214000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-15",
+   "cash": 2215000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-16",
+   "cash": 2216000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-17",
+   "cash": 2217000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-18",
+   "cash": 2218000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-19",
+   "cash": 2219000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-20",
+   "cash": 2220000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-21",
+   "cash": 2221000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-22",
+   "cash": 2222000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-23",
+   "cash": 2223000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-24",
+   "cash": 2224000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-25",
+   "cash": 2225000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-26",
+   "cash": 2226000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-27",
+   "cash": 2227000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-28",
+   "cash": 2228000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  },
+  {
+   "date": "2026-10-29",
+   "cash": 2229000,
+   "card": 500000,
+   "upi": 1800000,
+   "expenses": 150000
+  }
+ ],
+ "exp30": {
+  "Vegetable": 3900000
+ },
+ "exp30_total": 3900000,
+ "today_expenses": {
+  "total": 0,
+  "count": 0
+ },
+ "cash_in_hand": 57465000,
+ "accounts": [
+  {
+   "account": "Cash",
+   "balance": 57465000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "Bank of India",
+   "balance": 6000000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "UPI / Paytm",
+   "balance": 52200000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "Card",
+   "balance": 14500000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "Owner (Safik Home)",
+   "balance": 0,
+   "today_in": 0,
+   "today_out": 0
+  }
+ ],
+ "supplier_payable": 2000000,
+ "supplier_overdue": 0,
+ "staff_advance": 0,
+ "staff_count": 10,
+ "payroll": {
+  "period": "2026-10",
+  "exists": false
+ },
+ "purchases_mtd": {
+  "count": 0,
+  "total": 0
+ },
+ "bills_review": 0,
+ "goods_pending": 0,
+ "low_stock": 0,
+ "stock_value": 1650000,
+ "pending_approvals": 0,
+ "closings_to_review": 0,
+ "assist": {
+  "section": "dashboard",
+  "items": [
+   {
+    "level": "block",
+    "msg": "Morning Closing not submitted for 2026-11-01",
+    "route": "#/closing/2026-11-01",
+    "code": "closing_pending"
+   },
+   {
+    "level": "block",
+    "msg": "Salary sheet for 2026-10 has not been started.",
+    "route": "#/payroll/2026-10",
+    "code": "payroll_due"
+   },
+   {
+    "level": "info",
+    "msg": "No physical stock count in the last 30 days.",
+    "route": "#/count",
+    "code": "p-count"
+   }
+  ],
+  "blocking": 2,
+  "reviews": 1
+ }
+}

@@ -6,3 +6,13 @@ android/key.properties
 *.jks
 *.keystore
 .env
+# Flutter/Gradle generated (V29)
+.flutter-plugins
+.flutter-plugins-dependencies
+android/.gradle/
+android/.kotlin/
+android/app/.cxx/
+android/gradlew.bat.bak
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+.idea/
+*.iml

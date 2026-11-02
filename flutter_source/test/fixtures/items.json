@@ -1,0 +1,69 @@
+{
+ "items": [
+  {
+   "id": 1,
+   "name": "DEMO Onion",
+   "code": null,
+   "sku": null,
+   "barcode": null,
+   "category": "Vegetable",
+   "subcategory": null,
+   "brand": null,
+   "description": null,
+   "unit": "kg",
+   "purchase_unit": null,
+   "is_stock": 1,
+   "active": 1,
+   "photo_file_id": null,
+   "min_level": 0,
+   "reorder": 0,
+   "max_level": null,
+   "location": "Main Store",
+   "default_supplier_id": null,
+   "tax_rate": 0,
+   "merged_into": null,
+   "qty": 550,
+   "value": 1650000,
+   "avg_cost": 3000,
+   "low": false,
+   "out": false,
+   "last_receipt": null,
+   "last_supplier": null,
+   "units": []
+  }
+ ],
+ "total": 1,
+ "value": 1650000,
+ "low_count": 0,
+ "page": 0,
+ "limit": 200,
+ "categories": [
+  "Vegetable"
+ ],
+ "units": [
+  "kg",
+  "g",
+  "litre",
+  "ml",
+  "piece",
+  "dozen",
+  "packet",
+  "bag",
+  "box",
+  "carton",
+  "bottle",
+  "tray",
+  "can",
+  "jar",
+  "pouch",
+  "bundle",
+  "sack",
+  "tin",
+  "crate",
+  "case",
+  "roll"
+ ],
+ "locations": [
+  "Main Store"
+ ]
+}

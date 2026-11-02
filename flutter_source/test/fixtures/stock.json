@@ -1,0 +1,15 @@
+{
+ "value": 1650000,
+ "items_in_stock": 1,
+ "low": [],
+ "pending_receipts": [],
+ "expiring": [],
+ "open_count": null,
+ "last_count": null,
+ "cutover": "2026-11-02",
+ "locations": [
+  "Main Store"
+ ],
+ "model": "periodic",
+ "legacy_crm_value": 0
+}

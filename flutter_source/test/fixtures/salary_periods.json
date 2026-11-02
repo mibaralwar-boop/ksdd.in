@@ -1,0 +1,12 @@
+{
+ "months": [
+  {
+   "period": "2026-09",
+   "status": "locked",
+   "source": "legacy_register",
+   "days": 30
+  }
+ ],
+ "due": "2026-10",
+ "due_status": "not_started"
+}

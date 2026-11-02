@@ -1,141 +1,347 @@
 import 'package:flutter/material.dart';
-import '../core/api.dart';
-import '../core/strings.dart';
 
-class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key, required this.api, required this.onAuthenticated, required this.onLanguage});
-  final FinanceApi api;
-  final VoidCallback onAuthenticated;
+import '../core/api.dart';
+import '../core/format.dart';
+import '../core/session.dart';
+import '../widgets/common.dart';
+
+class Brand extends StatelessWidget {
+  const Brand({super.key});
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(color: brandOrange, borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 36),
+      );
+}
+
+class SignInScreen extends StatefulWidget {
+  const SignInScreen({super.key, required this.session, required this.onLanguage});
+  final Session session;
   final VoidCallback onLanguage;
   @override
-  State<AuthScreen> createState() => _AuthScreenState();
+  State<SignInScreen> createState() => _SignInScreenState();
 }
-class _AuthScreenState extends State<AuthScreen> {
+
+class _SignInScreenState extends State<SignInScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _form = GlobalKey<FormState>();
   bool _busy = false;
+  bool _hide = true;
   String? _error;
-  @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
-  Future<void> _login() async {
-    if (!_form.currentState!.validate() || _busy) return;
-    setState(() { _busy = true; _error = null; });
-    try {
-      await widget.api.login(_email.text.trim(), _password.text);
-      _password.clear();
-      if (mounted) widget.onAuthenticated();
-    } catch (e) { if (mounted) setState(() => _error = e.toString()); }
-    finally { if (mounted) setState(() => _busy = false); }
-  }
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Finance 360'), actions: [
-      TextButton(onPressed: widget.onLanguage, child: const Text('हिन्दी / EN')),
-    ]),
-    body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520),
-      child: Form(key: _form, child: ListView(padding: const EdgeInsets.all(24), children: [
-        const Icon(Icons.account_balance_wallet_rounded, size: 64, color: Color(0xFFE87520)),
-        const SizedBox(height: 24),
-        Text(tr(context, 'Your restaurant. A clear view.', 'आपके रेस्टोरेंट का साफ़ हिसाब।'), style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 24),
-        if (!widget.api.configured) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('This build has no configured secure server. Sign-in will be available after server configuration.'))),
-        TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, autofillHints: const [AutofillHints.username], decoration: InputDecoration(labelText: tr(context,'Email','ईमेल')), validator: (v) => v != null && v.contains('@') ? null : tr(context,'Enter your email','ईमेल भरें')),
-        const SizedBox(height: 16),
-        TextFormField(controller: _password, obscureText: true, autofillHints: const [AutofillHints.password], decoration: InputDecoration(labelText: tr(context,'Password','पासवर्ड')), validator: (v) => v == null || v.isEmpty ? tr(context,'Enter your password','पासवर्ड भरें') : null, onFieldSubmitted: (_) => _login()),
-        const SizedBox(height: 16),
-        if (_error != null) Semantics(liveRegion: true, child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
-        const SizedBox(height: 12),
-        FilledButton(onPressed: _busy || !widget.api.configured ? null : _login, child: Text(_busy ? tr(context,'Signing in…','साइन इन हो रहा है…') : tr(context,'Sign in','साइन इन'))),
-        const SizedBox(height: 8),
-        OutlinedButton(onPressed: _busy || !widget.api.configured ? null : () async {
-          final result = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => RegistrationScreen(api: widget.api)));
-          if (result == true && mounted) widget.onAuthenticated();
-        }, child: Text(tr(context,'Register restaurant','रेस्टोरेंट रजिस्टर करें'))),
-        TextButton(onPressed: !widget.api.configured ? null : () async {
-          try {
-            final data = await widget.api.request('plans', authenticated: false);
-            if (!context.mounted) return;
-            await showDialog<void>(context: context, builder: (_) => AlertDialog(title: Text(tr(context,'Plans','प्लान')), content: Text(data['notice'] as String), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
-          } catch (e) { if (mounted) setState(() => _error = e.toString()); }
-        }, child: Text(tr(context,'View plans','प्लान देखें'))),
-      ])),
-    )),
-  );
-}
 
-class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key, required this.api});
-  final FinanceApi api;
-  @override
-  State<RegistrationScreen> createState() => _RegistrationScreenState();
-}
-class _RegistrationScreenState extends State<RegistrationScreen> {
-  final _fields = <String, TextEditingController>{
-    for (final key in ['owner_name','email','password','confirm','restaurant_name','address','city','branch_name']) key: TextEditingController(),
-  };
-  final _form = GlobalKey<FormState>();
-  bool _consent = false;
-  bool _busy = false;
-  int _step = 0;
-  String? _error;
-  @override
-  void initState() { super.initState(); _fields['branch_name']!.text = 'Main Branch'; }
-  @override
-  void dispose() { for (final f in _fields.values) { f.dispose(); } super.dispose(); }
-  Widget field(String key, String en, String hi, {bool secret = false, int? max}) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: TextFormField(controller: _fields[key], obscureText: secret,
-      maxLength: max, keyboardType: key == 'email' ? TextInputType.emailAddress : TextInputType.text,
-      decoration: InputDecoration(labelText: tr(context,en,hi)),
-      validator: (v) {
-        if (v == null || v.trim().isEmpty) return tr(context,'Required','ज़रूरी');
-        if (key == 'email' && !v.contains('@')) return tr(context,'Enter a valid email','सही ईमेल भरें');
-        if (key == 'password' && v.length < 12) return tr(context,'Use at least 12 characters','कम से कम 12 अक्षर रखें');
-        if (key == 'confirm' && v != _fields['password']!.text) return tr(context,'Passwords do not match','पासवर्ड समान नहीं हैं');
-        return null;
-      },
-    ),
-  );
-  Future<void> _next() async {
-    if (_busy || !_form.currentState!.validate()) return;
-    if (_step < 3) { setState(() { _step++; _error = null; }); return; }
-    if (!_consent) { setState(() => _error = tr(context,'Please accept the privacy notice.','Privacy notice स्वीकार करें।')); return; }
-    setState(() { _busy = true; _error = null; });
+  Api get api => widget.session.api;
+
+  Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      final data = <String, dynamic>{for (final e in _fields.entries) if (e.key != 'confirm') e.key: e.value.text.trim()};
-      data['password'] = _fields['password']!.text;
-      data['privacy_consent'] = true;
-      data['language'] = Localizations.localeOf(context).languageCode;
-      await widget.api.register(data);
-      if (mounted) Navigator.pop(context,true);
-    } catch (e) { if (mounted) setState(() => _error = e.toString()); }
-    finally { if (mounted) setState(() => _busy = false); }
+      await widget.session.login(_email.text, _password.text);
+    } catch (e) {
+      setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
+
+  Future<void> _forgot() async {
+    final email = await askText(context, tr(context, 'Reset password', 'पासवर्ड रीसेट'),
+        tr(context, 'We will email a reset link if an account exists.', 'अगर अकाउंट है तो रीसेट लिंक ईमेल होगा।'),
+        label: 'Email');
+    if (email == null) return;
+    try {
+      final r = await api.publicPost('auth/password-forgot', {'email': email});
+      if (mounted) showMessage(context, (r['message'] ?? 'Check your email.').toString());
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(e), error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final titles = [tr(context,'Owner details','मालिक का विवरण'),tr(context,'Restaurant','रेस्टोरेंट'),tr(context,'First branch','पहली ब्रांच'),tr(context,'Trial and privacy','ट्रायल और प्राइवेसी')];
-    return Scaffold(appBar: AppBar(title: Text(titles[_step])), body: Center(child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560), child: Form(key: _form, child: ListView(
-        padding: const EdgeInsets.all(24), children: [
-          Text('${_step+1} / 4', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8), LinearProgressIndicator(value: (_step+1)/4), const SizedBox(height: 24),
-          if (_step == 0) ...[field('owner_name','Full name','पूरा नाम',max: 160),field('email','Email','ईमेल',max:190),field('password','Password','पासवर्ड',secret:true),field('confirm','Confirm password','पासवर्ड दोबारा',secret:true)],
-          if (_step == 1) ...[field('restaurant_name','Restaurant name','रेस्टोरेंट का नाम',max:160),field('address','Business address','पता',max:500),field('city','City','शहर',max:100)],
-          if (_step == 2) ...[field('branch_name','Branch name','ब्रांच का नाम',max:160),Text(tr(context,'The first branch uses the restaurant address.','पहली ब्रांच में रेस्टोरेंट वाला पता रहेगा।'))],
-          if (_step == 3) ...[
-            Text(tr(context,'30 calendar days free','30 कैलेंडर दिन मुफ्त'),style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:16),
-            Text(tr(context,'Your server records the exact trial start and end. Manual identity verification is required before management actions are enabled. Financial features are not available in this foundation build. No payment will be collected.','ट्रायल का समय सर्वर तय करेगा। Management actions के लिए पहचान का manual verification ज़रूरी है। इस foundation build में financial features उपलब्ध नहीं हैं। कोई payment नहीं लिया जाएगा।')),
-            const SizedBox(height:16),
-            Text(tr(context,'Privacy notice: your account and restaurant details are stored by your configured server to provide this service. Contact your restaurant/platform administrator for data access and deletion requests. Financial retention may require review. This notice is a staging draft, not a published privacy policy.','Privacy notice: आपकी account और restaurant details सेवा देने के लिए configured server पर रखी जाएँगी। Data access या deletion के लिए administrator से संपर्क करें। Financial records के retention की समीक्षा हो सकती है। यह staging draft है।')),
-            CheckboxListTile(value:_consent,onChanged:_busy?null:(v)=>setState(()=>_consent=v??false),title:Text(tr(context,'I accept processing for account setup.','मैं account बनाने के लिए data processing स्वीकार करता/करती हूँ।')),controlAffinity:ListTileControlAffinity.leading),
-          ],
-          if(_error!=null)Semantics(liveRegion:true,child:Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
-          const SizedBox(height:24),
-          FilledButton(onPressed:_busy?null:_next,child:Text(_busy?tr(context,'Creating…','बन रहा है…'):_step==3?tr(context,'Create restaurant','रेस्टोरेंट बनाएँ'):tr(context,'Continue','आगे'))),
-          if(_step>0)TextButton(onPressed:_busy?null:()=>setState(()=>_step--),child:Text(tr(context,'Back','पीछे'))),
-        ],
-      )),
-    )));
+    final ok = api.configured;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Finance 360'), actions: [
+        TextButton(onPressed: widget.onLanguage, child: const Text('हिन्दी / EN')),
+      ]),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Form(
+              key: _form,
+              child: ListView(padding: const EdgeInsets.all(24), children: [
+                const Center(child: Brand()),
+                const SizedBox(height: 20),
+                Text(tr(context, 'Your restaurant. A clear view.', 'आपका रेस्टोरेंट। साफ़ हिसाब।'),
+                    style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 16),
+                if (!ok)
+                  const Banner2('This build has no configured secure server. Sign-in will be available after server configuration.',
+                      icon: Icons.cloud_off),
+                TextFormField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: (v) => (v ?? '').contains('@') ? null : 'Enter your email',
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _password,
+                  obscureText: _hide,
+                  autofillHints: const [AutofillHints.password],
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'Password', 'पासवर्ड'),
+                    suffixIcon: IconButton(
+                      tooltip: _hide ? 'Show password' : 'Hide password',
+                      icon: Icon(_hide ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _hide = !_hide),
+                    ),
+                  ),
+                  validator: (v) => (v ?? '').isEmpty ? 'Enter your password' : null,
+                  onFieldSubmitted: (_) => _submit(),
+                ),
+                if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: Color(0xFFB3261E)))),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: ok && !_busy ? _submit : null,
+                  child: _busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(tr(context, 'Sign in', 'साइन इन')),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: ok ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => RegisterScreen(api: api))) : null,
+                  child: Text(tr(context, 'Register restaurant', 'रेस्टोरेंट रजिस्टर करें')),
+                ),
+                TextButton(onPressed: ok ? _forgot : null, child: Text(tr(context, 'Forgot password?', 'पासवर्ड भूल गए?'))),
+                TextButton(
+                  onPressed: ok ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlansScreen(api: api))) : null,
+                  child: Text(tr(context, 'View plans', 'प्लान देखें')),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PlansScreen extends StatelessWidget {
+  const PlansScreen({super.key, required this.api});
+  final Api api;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Plans')),
+        body: Loader<Map<String, dynamic>>(
+          load: () => api.publicGet('subscriptions/plans'),
+          builder: (context, d, _) {
+            final plans = (d['plans'] as List? ?? const []);
+            return ListView(padding: const EdgeInsets.all(16), children: [
+              Banner2('New restaurants start with a ${d['trial_days'] ?? 30}-day free trial. No payment is taken in the app.'),
+              if (plans.isEmpty) const SectionCard(children: [Text('No paid plans are published yet.')]),
+              for (final p in plans)
+                SectionCard(title: (p as Map)['name']?.toString() ?? 'Plan', children: [
+                  if (p['description'] != null) Text(p['description'].toString()),
+                  for (final v in (p['terms'] as List? ?? const []))
+                    SumRow('${(v as Map)['term']} · up to ${v['max_branches']} branch(es), ${v['max_users']} users', rupees(v['price_paise'])),
+                ]),
+            ]);
+          },
+        ),
+      );
+}
+
+/// Restaurant self-registration (V29 `POST tenants/register`). The restaurant is created only after the owner
+/// verifies the email link, so nothing here claims the account is active.
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key, required this.api});
+  final Api api;
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _form = GlobalKey<FormState>();
+  final c = {
+    for (final k in ['owner_name', 'mobile', 'email', 'password', 'restaurant', 'contact_phone', 'address', 'city', 'state', 'pincode', 'branch_name'])
+      k: TextEditingController(),
+  };
+  int _cutoff = 4;
+  bool _terms = false;
+  bool _busy = false;
+  String? _done;
+
+  @override
+  void initState() {
+    super.initState();
+    c['branch_name']!.text = 'Main';
+  }
+
+  Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
+    if (!_terms) {
+      showMessage(context, 'Please accept the terms and privacy policy.', error: true);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final r = await widget.api.publicPost('tenants/register', {
+        for (final e in c.entries) e.key: e.value.text.trim(),
+        'cutoff_hour': _cutoff,
+        'accept_terms': true,
+      });
+      setState(() => _done = (r['message'] ?? 'Check your email to verify and finish setting up your restaurant.').toString());
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(e), error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _f(String k, String label, {TextInputType? type, bool req = false, bool obscure = false, String? Function(String)? check}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextFormField(
+          controller: c[k],
+          keyboardType: type,
+          obscureText: obscure,
+          decoration: InputDecoration(labelText: req ? '$label *' : label),
+          validator: (v) {
+            final t = (v ?? '').trim();
+            if (req && t.isEmpty) return 'Required';
+            return t.isEmpty ? null : check?.call(t);
+          },
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    if (_done != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Register restaurant')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(children: [
+            const Icon(Icons.mark_email_read_outlined, size: 64, color: brandOrange),
+            const SizedBox(height: 16),
+            Text(_done!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            const Text('Your 30-day free trial starts when the restaurant is created after verification. '
+                'Mobile number is stored unverified until an OTP service is connected.', textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Back to sign in')),
+          ]),
+        ),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Register restaurant')),
+      body: Form(
+        key: _form,
+        child: ListView(padding: const EdgeInsets.all(16), children: [
+          Text('Owner', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _f('owner_name', 'Full name', req: true),
+          _f('mobile', 'Mobile (10 digits)', type: TextInputType.phone, req: true,
+              check: (t) => RegExp(r'^[6-9]\d{9}$').hasMatch(t) ? null : 'Enter a 10-digit Indian mobile'),
+          _f('email', 'Email', type: TextInputType.emailAddress, req: true, check: (t) => t.contains('@') ? null : 'Enter a valid email'),
+          _f('password', 'Password (min 10 characters)', obscure: true, req: true, check: (t) => t.length >= 10 ? null : 'At least 10 characters'),
+          Text('Restaurant', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _f('restaurant', 'Restaurant name', req: true),
+          _f('contact_phone', 'Restaurant phone', type: TextInputType.phone),
+          _f('address', 'Address'),
+          _f('city', 'City', req: true),
+          _f('state', 'State'),
+          _f('pincode', 'PIN code', type: TextInputType.number, check: (t) => RegExp(r'^[1-9]\d{5}$').hasMatch(t) ? null : '6-digit PIN'),
+          Text('First branch', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _f('branch_name', 'Branch name', req: true),
+          DropdownButtonFormField<int>(
+            initialValue: _cutoff,
+            decoration: const InputDecoration(labelText: 'Business day ends at (next morning)'),
+            items: [for (var h = 0; h <= 12; h++) DropdownMenuItem(value: h, child: Text('${h.toString().padLeft(2, '0')}:00'))],
+            onChanged: (v) => setState(() => _cutoff = v ?? 4),
+          ),
+          const SizedBox(height: 12),
+          const Banner2('Default free trial: 30 calendar days, once per owner. After it ends, records stay readable and exportable; '
+              'new entries need an active plan.'),
+          CheckboxListTile(
+            value: _terms,
+            onChanged: (v) => setState(() => _terms = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text('I accept the Terms and Privacy Policy and consent to processing of my restaurant data.'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Sending…' : 'Create restaurant')),
+          const SizedBox(height: 24),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Restaurants and branches come only from explicit memberships returned by the server.
+class ChooseBranchScreen extends StatefulWidget {
+  const ChooseBranchScreen({super.key, required this.session});
+  final Session session;
+  @override
+  State<ChooseBranchScreen> createState() => _ChooseBranchScreenState();
+}
+
+class _ChooseBranchScreenState extends State<ChooseBranchScreen> {
+  bool _busy = false;
+
+  Future<void> _open(int t, int b) async {
+    setState(() => _busy = true);
+    try {
+      await widget.session.select(t, b);
+    } catch (e) {
+      if (mounted) showMessage(context, errorText(e), error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ms = widget.session.memberships;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Choose restaurant'), actions: [
+        IconButton(tooltip: 'Sign out', onPressed: widget.session.logout, icon: const Icon(Icons.logout)),
+      ]),
+      body: _busy
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(padding: const EdgeInsets.all(16), children: [
+              Text('Signed in as ${widget.session.user?['email'] ?? ''}'),
+              const SizedBox(height: 8),
+              if (ms.isEmpty)
+                const Banner2('Your account is not a member of any restaurant yet. Ask the owner to invite you, '
+                    'or register your own restaurant.'),
+              for (final m in ms)
+                SectionCard(title: m['name'].toString(), children: [
+                  Row(children: [
+                    Text('${m['role']}'),
+                    const Spacer(),
+                    Text(Subscription((m['subscription'] as Map?)?.cast<String, dynamic>() ?? const {}).label),
+                  ]),
+                  for (final b in (m['branches'] as List? ?? const []))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.storefront_outlined),
+                      title: Text((b as Map)['name'].toString()),
+                      subtitle: Text([b['city'], if (b['primary'] == true) 'Primary branch'].whereType<String>().join(' · ')),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _open((m['id'] as num).toInt(), (b['id'] as num).toInt()),
+                    ),
+                ]),
+            ]),
+    );
   }
 }

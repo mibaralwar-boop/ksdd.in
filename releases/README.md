@@ -1,18 +1,23 @@
-# Finance 360 0.28.0 — test APK (NOT a production or Play release)
+# Finance 360 0.29.0 — test builds (NOT for Google Play, NOT a production release)
 
-File: `finance360-0.28.0-production-TESTKEY.apk` (application ID `com.finance360.app`, minSdk 24, targetSdk 36)
+| File | What |
+|---|---|
+| `finance360-0.29.0-production-TESTKEY.apk` | Release APK (installable, sideload) |
+| `finance360-0.29.0-production-TESTKEY.aab` | Release App Bundle (build evidence only — see signing) |
+| `SHA256SUMS` | Checksums |
 
-SHA-256: `f69271d9250c3df600593ec84556494f2b42d4a7492bb76d0977e88f1efcc799`
+Application ID `com.finance360.app` (provisional), versionName 0.29.0, versionCode 29, minSdk 24, targetSdk 36.
+Built with Flutter 3.47.9 stable: `flutter build apk|appbundle --release --flavor production`.
 
-Signing certificate:
-```
-Signer #1 certificate DN: CN=Finance 360 SESSION TEST KEY - NOT FOR PLAY
-Signer #1 certificate SHA-256 digest: d314b7d1e6837629405901f93a773dfda708a3ce79ba46821bf32c7b97da6a09
-```
+**Signing:** both files are signed with a temporary key generated during a Claude Code session
+(`CN=Finance 360 SESSION TEST KEY - NOT FOR PLAY`, certificate SHA-256
+`d314b7d1e6837629405901f93a773dfda708a3ce79ba46821bf32c7b97da6a09`). The key is not in this repository. Google Play
+will not accept these as your upload; rebuild with your own upload key. A build signed with your key cannot install
+over this one — uninstall this first.
 
-- This APK is signed with a **temporary key generated during a Claude Code session** and does not use your Play upload key. Google Play will not accept it. Later builds signed with your own key cannot install over it, so uninstall this one first.
-- Built **without API_BASE**: the app opens to a "not configured" state and sign-in is disabled. Rebuild with your staging `f28-api.php` HTTPS URL to use it.
-- Contents: V28 foundation only (sign-in, restaurant registration, restaurant/branch selection, trial status, branch management, sign-out, deletion request). No closing, salary, purchase, stock or accounting screens.
-- Verified: `flutter analyze` reported no issues; `flutter test` passed 8 tests. **Not installed or tested on any device yet.**
+**Server:** built **without `API_BASE`**, so the app opens to "no configured secure server" and sign-in is disabled.
+Rebuild with `--dart-define=API_BASE=https://YOUR_DOMAIN/…/api/v1/index.php` once the V29 backend runs on a staging copy.
 
-Install: download the APK on your Android phone, allow "Install unknown apps" for your browser or file manager, then open the file.
+**Verified:** `apksigner verify` OK, `jarsigner -verify` (AAB) OK, `flutter analyze` no issues, `flutter test` 22 passed,
+live API tests 11 passed against the real V29 backend on a local staging server (see `../docs/APP_TEST_REPORT.md`).
+**Not done:** installation on a device/emulator in this environment, screenshots, Play bundle upload validation.

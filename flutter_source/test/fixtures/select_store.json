@@ -1,0 +1,62 @@
+{
+ "token_type": "Bearer",
+ "expires_in": 900,
+ "refresh_expires_in": 2592000,
+ "permissions": {
+  "tenant_id": 1,
+  "branch_id": 1,
+  "branch_name": "Main",
+  "template": "store",
+  "menus": [
+   "purchases",
+   "suppliers",
+   "stock",
+   "documents"
+  ],
+  "home": "dashboard",
+  "actions": [
+   "dashboard.view",
+   "suppliers.view",
+   "supplier.create",
+   "purchase.view",
+   "purchase.create",
+   "purchase.upload",
+   "purchase.edit",
+   "item.view",
+   "item.create",
+   "item.photo",
+   "stock.view",
+   "stock.receive",
+   "stock.issue",
+   "stock.count",
+   "notifications.view",
+   "docs.inbox"
+  ],
+  "read_only": false,
+  "subscription": {
+   "state": "active",
+   "label": "Active",
+   "read_only": false,
+   "days_left": 365,
+   "period_end": "2027-11-02 18:21:31",
+   "period_end_ist": "2 Nov 2027, 11:51 PM IST",
+   "plan": "Founding restaurant (complimentary)",
+   "term": "yearly",
+   "kind": "complimentary"
+  },
+  "plan_modules": {
+   "closing": true,
+   "expenses": true,
+   "staff": true,
+   "payroll": true,
+   "purchases": true,
+   "stock": true,
+   "reports": true,
+   "integrations": true
+  },
+  "business_date": "2026-11-02",
+  "closing_target_date": "2026-11-01",
+  "perm_version": "d5270b32c6eb1189",
+  "refresh_after_seconds": 300
+ }
+}

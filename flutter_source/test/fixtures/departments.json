@@ -1,0 +1,135 @@
+{
+ "departments": [
+  {
+   "id": 1,
+   "code": "management",
+   "name": "Management",
+   "name_hi": "मैनेजमेंट",
+   "designations": [
+    {
+     "id": 1,
+     "dept_id": 1,
+     "name": "Manager",
+     "name_hi": null,
+     "sort": 1,
+     "active": 1,
+     "staff": 1
+    },
+    {
+     "id": 2,
+     "dept_id": 1,
+     "name": "Supervisor",
+     "name_hi": null,
+     "sort": 2,
+     "active": 1,
+     "staff": 0
+    },
+    {
+     "id": 3,
+     "dept_id": 1,
+     "name": "Cashier",
+     "name_hi": null,
+     "sort": 3,
+     "active": 1,
+     "staff": 1
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "code": "ut",
+   "name": "UT",
+   "name_hi": "यूटी",
+   "designations": [
+    {
+     "id": 4,
+     "dept_id": 2,
+     "name": "UT Staff",
+     "name_hi": null,
+     "sort": 1,
+     "active": 1,
+     "staff": 1
+    },
+    {
+     "id": 11,
+     "dept_id": 2,
+     "name": "Wiping",
+     "name_hi": null,
+     "sort": 99,
+     "active": 1,
+     "staff": 1
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "code": "kitchen",
+   "name": "Kitchen",
+   "name_hi": "किचन",
+   "designations": [
+    {
+     "id": 5,
+     "dept_id": 3,
+     "name": "Chef",
+     "name_hi": null,
+     "sort": 1,
+     "active": 1,
+     "staff": 1
+    },
+    {
+     "id": 6,
+     "dept_id": 3,
+     "name": "Cook",
+     "name_hi": null,
+     "sort": 2,
+     "active": 1,
+     "staff": 1
+    },
+    {
+     "id": 7,
+     "dept_id": 3,
+     "name": "Kitchen Helper",
+     "name_hi": null,
+     "sort": 3,
+     "active": 1,
+     "staff": 1
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "code": "waiter",
+   "name": "Waiter",
+   "name_hi": "वेटर",
+   "designations": [
+    {
+     "id": 8,
+     "dept_id": 4,
+     "name": "Captain",
+     "name_hi": null,
+     "sort": 1,
+     "active": 1,
+     "staff": 1
+    },
+    {
+     "id": 9,
+     "dept_id": 4,
+     "name": "Waiter",
+     "name_hi": null,
+     "sort": 2,
+     "active": 1,
+     "staff": 1
+    },
+    {
+     "id": 10,
+     "dept_id": 4,
+     "name": "Guard",
+     "name_hi": null,
+     "sort": 3,
+     "active": 1,
+     "staff": 1
+    }
+   ]
+  }
+ ]
+}

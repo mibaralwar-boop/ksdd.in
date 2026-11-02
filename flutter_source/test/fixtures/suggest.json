@@ -1,0 +1,31 @@
+{
+ "supplier": {
+  "id": 1,
+  "name": "DEMO Sharma Vegetables",
+  "credit_days": 0
+ },
+ "balance": 2032000,
+ "balance_note": "Positive = you owe the supplier; negative = advance with the supplier (from the supplier ledger).",
+ "last_bill": {
+  "id": 1,
+  "bill_no": "PB00001",
+  "invoice_no": "T-1",
+  "date": "2026-11-01",
+  "total": 32000
+ },
+ "suggested_items": [
+  {
+   "item_id": 1,
+   "item_name": "DEMO Onion",
+   "times": 1,
+   "last_date": "2026-11-01",
+   "unit": "kg",
+   "factor": 1,
+   "base_unit": "kg",
+   "last_qty": 10,
+   "last_rate": 3200,
+   "compare_basis": "Landed cost per kg (line cost incl. allocated discount / tax / transport ÷ quantity in kg). Posted bills only.",
+   "other_suppliers": []
+  }
+ ]
+}

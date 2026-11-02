@@ -1,0 +1,48 @@
+{
+ "token_type": "Bearer",
+ "expires_in": 900,
+ "refresh_expires_in": 2592000,
+ "permissions": {
+  "tenant_id": 2,
+  "branch_id": 2,
+  "branch_name": "Main",
+  "template": "cash_counter",
+  "menus": [
+   "closing"
+  ],
+  "home": "closing",
+  "actions": [
+   "closing.view",
+   "closing.entry",
+   "closing.finalize",
+   "closing.variance",
+   "notifications.view"
+  ],
+  "read_only": false,
+  "subscription": {
+   "state": "active",
+   "label": "Active",
+   "read_only": false,
+   "days_left": 71,
+   "period_end": "2027-01-12 18:29:59",
+   "period_end_ist": "12 Jan 2027, 11:59 PM IST",
+   "plan": "Standard",
+   "term": "monthly",
+   "kind": "paid"
+  },
+  "plan_modules": {
+   "closing": true,
+   "expenses": true,
+   "staff": true,
+   "payroll": true,
+   "purchases": true,
+   "stock": true,
+   "reports": true,
+   "integrations": true
+  },
+  "business_date": "2026-11-02",
+  "closing_target_date": "2026-11-01",
+  "perm_version": "255de0576ba2544e",
+  "refresh_after_seconds": 300
+ }
+}
