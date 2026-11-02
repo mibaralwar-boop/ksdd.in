@@ -1,0 +1,6 @@
+[
+{"name":"Petpooja Sale","type":"sale","account":"Unallocated","amount":1000,"description":"DEMO sample entry (install.php sample only). Confirm the cash/bank split before allocation."},
+{"name":"Cash Acess","type":"sale","account":"Cash","amount":100,"description":"DEMO"},
+{"name":"Staff Tip","type":"expense","account":"Cash","amount":50,"category":"Staff tips","description":"DEMO"},
+{"name":"Vegetable","type":"expense","account":"Cash","amount":200,"category":"Vegetable","description":"DEMO"}
+]

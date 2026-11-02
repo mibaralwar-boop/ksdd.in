@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Finance 360 V20/V21 — HTTP tests for Integrations, overview, reconciliation, consumption (STAGING ONLY).
+Usage: BASE=http://127.0.0.1:8360 python3 tests/http_v20.py  (after tests/run_tests.php; mock server on 8399)"""
+import json, os, sys, uuid, urllib.request, urllib.error
+sys.path.insert(0, os.path.dirname(__file__))
+from http_v17_lib import S, check, BASE, result  # noqa
+own = S('owner@staging.test', 'OwnerPass#2026'); ctr = S('counter@staging.test', 'StagingPass#2026'); acc = S('accounts@staging.test', 'StagingPass#2026'); anon = S()
+print('== Integrations: owner only ==')
+check('owner GET integrations', 200, own.get('integrations')[0])
+for who, s in [('counter', ctr), ('accountant', acc)]:
+    check(f'{who} GET integrations → 403', 403, s.get('integrations')[0])
+    for r in ['int-drive-save', 'int-drive-connect', 'int-drive-disconnect', 'int-backup-now', 'int-wa-save', 'int-wa-test', 'int-wa-recipient', 'int-run']:
+        check(f'{who} POST {r} → 403', 403, s.post(r, {})[0])
+check('anonymous GET integrations → 401', 401, anon.get('integrations')[0])
+st, b, _ = own.raw('POST', BASE + '/f360-api.php?route=int-run', {}, '')
+check('owner POST without CSRF → 403', 403, st)
+s, j = own.get('integrations'); txt = json.dumps(j)
+check('integration state hides secrets (no API key / client secret / passphrase)', True, all(x not in txt for x in ['mock-aisensy-key', 'GOCSPX', 'demo backup passphrase']))
+print('== OAuth callback & webhook ==')
+s, body, _ = anon.raw('GET', BASE + '/f360-oauth.php?code=x&state=' + 'a' * 48)
+check('OAuth callback with unknown state → not connected page', True, s == 200 and b'Not connected' in body)
+s, body, _ = anon.raw('GET', BASE + '/f360-oauth.php?error=access_denied')
+check('OAuth callback when user cancels → not connected page', True, b'cancelled' in body)
+s, body, _ = anon.raw('GET', BASE + '/f360-wa-webhook.php')
+check('webhook GET → 405', 405, s)
+s, body, _ = anon.raw('POST', BASE + '/f360-wa-webhook.php?k=wrong', {'statuses': []})
+check('webhook wrong token → 403', 403, s)
+tok = (j.get('wa', {}).get('webhook_url') or '').split('k=')[-1]
+if tok:
+    s, body, _ = anon.raw('POST', BASE + '/f360-wa-webhook.php?k=' + tok, {'entry': [{'changes': [{'value': {'statuses': [{'id': 'unknown-id', 'status': 'delivered'}]}}]}], 'n': uuid.uuid4().hex})
+    check('webhook right token → 200', 200, s)
+print('== Overview, reconciliation, statements, scheduler, consumption ==')
+check('owner GET overview', 200, own.get('overview')[0]); check('counter GET overview', 200, ctr.get('overview')[0])
+s, o = ctr.get('overview'); check('counter overview has no owner-only items', True, all(i['key'] in ('closing', 'cash_short', 'closing_review') for i in o['items']))
+s, r = own.get('reconcile'); check('owner GET reconcile', 200, s); check('reconciliation: all checks pass', 0, r.get('failed'))
+check('counter GET reconcile → 403', 403, ctr.get('reconcile')[0])
+check('owner GET P&L / balance sheet', 200, own.get('gl&what=statements')[0])
+check('owner GET scheduler', 200, own.get('scheduler')[0]); check('counter GET scheduler → 403', 403, ctr.get('scheduler')[0])
+check('counter POST stock-consume → 403', 403, ctr.post('stock-consume', {'client_key': 'k' + uuid.uuid4().hex, 'lines': []})[0])
+s, b = own.post('stock-consume', {'client_key': 'k' + uuid.uuid4().hex, 'lines': []}); check('owner stock-consume with no lines → 400', 400, s)
+print('== Staff master import: owner only ==')
+check('owner GET emp-import', 200, own.get('emp-import')[0])
+for who, sx in [('counter', ctr), ('accountant', acc)]:
+    check(f'{who} GET emp-import → 403', 403, sx.get('emp-import')[0])
+    for r in ['emp-import-upload', 'emp-import-decide', 'emp-import-apply', 'emp-import-rollback']: check(f'{who} POST {r} → 403', 403, sx.post(r, {})[0])
+check('anonymous GET emp-import → 401', 401, anon.get('emp-import')[0])
+check('owner upload with no files → 400', 400, own.post('emp-import-upload', {})[0])
+check('owner one-click upload that is not an xlsx → 400', 400, own.post('emp-import-upload', {'oneclick': {'name': 'x.xlsx', 'data': 'bm90IGEgemlw'}})[0])
+print('== Salary history (old months, record only) ==')
+s, b = own.get('salary-history'); check('owner GET salary-history', 200, s); check('salary-history says not used for salary', True, 'Not used for salary' in json.dumps(b))
+check('counter GET salary-history → 403', 403, ctr.get('salary-history')[0]); check('anonymous GET salary-history → 401', 401, anon.get('salary-history')[0])
+check('salary-history has no write route → 405', 405, own.post('salary-history', {})[0])
+check('owner apply without typing IMPORT → 400', 400, own.post('emp-import-apply', {'batch': 'EMP-NONE'})[0])
+s_, body, _ = anon.raw('GET', BASE + '/tools/f360-employee-import.php'); check('import CLI over HTTP → 404', 404, s_)
+print('== Pages & files ==')
+for f in ['f360-cron.php']:
+    s, body, _ = anon.raw('GET', BASE + '/' + f); check(f'{f} over HTTP → 404', 404, s)
+s, body, _ = anon.raw('GET', BASE + '/tools/f360-restore.php'); check('restore tool over HTTP → 404', 404, s)
+s, body, _ = anon.raw('GET', BASE + '/assets/f360/integrations.js'); check('integrations.js served', 200, s)
+result()

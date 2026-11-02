@@ -1,0 +1,23 @@
+/* KSDD V6 / ERP V1 screens — extends crm360.css, same palette */
+.fin-steps{display:flex;gap:6px;list-style:none;padding:0;margin:4px 0 6px}.fin-steps li{flex:1;text-align:center;border-radius:20px;padding:4px 0;background:#e7ece6;font-weight:700;font-size:13px}.fin-steps li.on{background:#143c32;color:#fff}.fin-steps li.done{background:#b9d3c3}
+.fin-step-title{margin:0 0 10px;font-size:14px}
+.fin-purpose{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fin-purpose .crm-tile{min-height:86px}
+@media(min-width:700px){.fin-purpose{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.fin-nav{display:flex;gap:10px;justify-content:space-between;position:sticky;bottom:0;background:inherit;padding-top:10px}.fin-nav .primary{flex:1;min-height:48px;font-size:16px}
+.fin-warn{background:#fff4e0;border-left:4px solid #e0a030;padding:10px;border-radius:6px}
+.fin-bill{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;border:1px solid #dde3dc;border-radius:10px;padding:10px;margin:6px 0}.fin-bill.off{opacity:.55}.fin-bill input[type=number]{grid-column:1/-1;font-size:18px;padding:8px}.fin-bill label{display:flex;gap:8px;align-items:center}.fin-bill input[type=checkbox]{width:24px;height:24px}
+.fin-pick{display:block;padding:12px;border:1px solid #dde3dc;border-radius:10px;margin:6px 0}
+.fin-review{display:grid;gap:6px}.fin-review div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #dde3dc;padding:6px 0}.fin-review span{color:#667}.fin-review .big b{font-size:24px}
+.fin-done{text-align:center;padding:20px}.fin-done b{font-size:22px}
+.fin-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}.fin-mode button{padding:10px;border-radius:10px;border:2px solid #dde3dc;background:#fff}.fin-mode button.on{border-color:#143c32;background:#e8f1ec;font-weight:700}
+.fin-urow{border:1px solid #dde3dc;border-radius:10px;padding:8px;margin:6px 0}.fin-urow.missing{border-left:5px solid #c0392b}.fin-urow.entered{border-left:5px solid #2e7d4f}
+.fin-uname small{display:block;color:#556}.fin-uname span{color:#556}
+.fin-unums{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:6px}.fin-unums input{font-size:18px;padding:8px;min-width:0}.fin-unums .unit{align-self:center;color:#556}
+.fin-uextra{display:grid;gap:6px;margin-top:6px}
+.fin-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}.fin-toolbar input,.fin-toolbar select{padding:6px}
+.fin-flag{padding:8px 10px;border-radius:8px;margin:4px 0;background:#f4f6f3}.fin-flag.high{background:#fde8e6}.fin-flag.medium{background:#fff4e0}
+.fin-strong td{font-weight:700;border-top:2px solid #ccd5cb}
+.fin-ptable td{vertical-align:top}.fin-ptable small{display:block}.fin-ptable select{max-width:220px}.fin-p-invalid{background:#fde8e6}.fin-p-protected,.fin-p-already{background:#f1f4f0}.fin-p-needs-match{background:#fff8e6}
+.fin-slip table{width:100%}
+@media print{.sidebar,.topbar,.fin-nav,button{display:none!important}}
+.fin-toolbar button,.fin-toolbar a button{min-height:40px;padding:8px 14px;border-radius:10px;border:1px solid #ccd5cb;background:#fff;color:#143c32;font-weight:600}.fin-toolbar button.primary{background:#143c32;color:#fff;border-color:#143c32}

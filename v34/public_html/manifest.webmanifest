@@ -1,0 +1,15 @@
+{
+  "name": "Khadak Singh Da Dhaba — Finance 360",
+  "short_name": "KSDD Finance",
+  "description": "Morning closing, expenses, staff and salary for Khadak Singh Da Dhaba",
+  "start_url": "./index.php",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF6E8",
+  "theme_color": "#1B1B1B",
+  "icons": [
+    { "src": "assets/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
