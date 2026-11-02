@@ -1,6 +1,6 @@
 # Finance 360 Android app (Flutter) — v0.29.0
 
-Native Flutter / Material 3 app for the **Finance 360 V29** multi-restaurant PHP/MySQL backend in `../backend_v29/public_html`.
+Native Flutter / Material 3 app for the **Finance 360 V30** single-site backend at `https://ksdd.in` (`../site/public_html`, one shared database).
 No WebView. No second database: every figure is read from and written to the restaurant's own branch ledger through the
 same server functions the website uses (`/api/v1` → `f3_dispatch`).
 
@@ -24,8 +24,8 @@ settings) show an honest "use the website" page — never a fake screen.
 
 ## Configure and build
 
-`API_BASE` = full HTTPS URL of the server's `api/v1/index.php` (e.g. `https://YOUR_DOMAIN/YOUR_FOLDER/api/v1/index.php`).
-The backend must be in multi-restaurant mode (`platform` block in `config.php`) — see `../backend_v29/docs/`.
+`API_BASE` = full HTTPS URL of the server's `api/v1/index.php` (production: `https://ksdd.in/api/v1/index.php`).
+The backend must be in multi-restaurant shared mode — see `../site/docs/HOSTING_KSDD_IN.md`.
 
 ```bash
 flutter pub get && flutter analyze && flutter test
@@ -43,5 +43,5 @@ loopback/emulator hosts in debug builds with `--dart-define=ALLOW_LOCAL_HTTP=tru
 * `flutter test` — 22 unit + widget tests (money/paise, permission-only navigation from real server permission
   fixtures, token refresh/rotation, closing wizard + idempotent finalize, salary six-field Save & Next, purchase
   rate-change confirmation). Fixtures in `test/fixtures` are real responses captured from the V29 backend with demo data.
-* `tool/live_test.sh` — 11 live tests of the app's API client against the **real V29 PHP backend + MariaDB**
+* `tool/live_test.sh` — 11 live tests of the app's API client against the **real V30 PHP backend + MariaDB (shared database)**
   (disposable `*_test` databases rebuilt by the backend's own 64-test platform suite). See `../docs/APP_TEST_REPORT.md`.

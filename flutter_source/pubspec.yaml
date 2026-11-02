@@ -1,7 +1,7 @@
 name: finance360
 description: Finance 360 multi-restaurant Android app (native Flutter) for the V29 PHP/MySQL backend.
 publish_to: none
-version: 0.29.0+29
+version: 0.30.0+30
 environment:
   sdk: '>=3.6.0 <4.0.0'
 dependencies:

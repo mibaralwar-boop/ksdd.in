@@ -1,23 +1,21 @@
-# Finance 360 0.29.0 — test builds (NOT for Google Play, NOT a production release)
+# Finance 360 V30 — release files (NOT deployed, NOT published)
 
 | File | What |
 |---|---|
-| `finance360-0.29.0-production-TESTKEY.apk` | Release APK (installable, sideload) |
-| `finance360-0.29.0-production-TESTKEY.aab` | Release App Bundle (build evidence only — see signing) |
+| `FINANCE360_V30_KSDD_IN.zip` | The ONE Hostinger upload for ksdd.in: `public_html/` (website, owner portal, Super Admin, `/api/v1`) + `ksdd_private/` (outside the web root: config template, storage) + docs. Install/staging/rollback: `docs/HOSTING_KSDD_IN.md` inside the ZIP. |
+| `finance360-0.30.0-production-TESTKEY.apk` | Android release APK, `API_BASE=https://ksdd.in/api/v1/index.php` |
+| `finance360-0.30.0-production-TESTKEY.aab` | Android App Bundle (build evidence) |
 | `SHA256SUMS` | Checksums |
 
-Application ID `com.finance360.app` (provisional), versionName 0.29.0, versionCode 29, minSdk 24, targetSdk 36.
-Built with Flutter 3.47.9 stable: `flutter build apk|appbundle --release --flavor production`.
+App: `com.finance360.app` (provisional) · 0.30.0 (30) · minSdk 24 · targetSdk 36.
 
-**Signing:** both files are signed with a temporary key generated during a Claude Code session
-(`CN=Finance 360 SESSION TEST KEY - NOT FOR PLAY`, certificate SHA-256
-`d314b7d1e6837629405901f93a773dfda708a3ce79ba46821bf32c7b97da6a09`). The key is not in this repository. Google Play
-will not accept these as your upload; rebuild with your own upload key. A build signed with your key cannot install
-over this one — uninstall this first.
+**The app talks to `https://ksdd.in/api/v1/index.php`, which only exists after the V30 backend is installed on ksdd.in.**
+Until then sign-in fails with a network/server error. For staging, rebuild with the staging address:
+`flutter build apk --release --flavor production --dart-define=API_BASE=https://staging.ksdd.in/api/v1/index.php`
 
-**Server:** built **without `API_BASE`**, so the app opens to "no configured secure server" and sign-in is disabled.
-Rebuild with `--dart-define=API_BASE=https://YOUR_DOMAIN/…/api/v1/index.php` once the V29 backend runs on a staging copy.
+**Signing:** temporary session TEST key (`CN=Finance 360 SESSION TEST KEY - NOT FOR PLAY`,
+SHA-256 `d314b7d1e6837629405901f93a773dfda708a3ce79ba46821bf32c7b97da6a09`). Google Play will not accept it; rebuild with
+your own upload key (`F360_STORE_FILE`, `F360_STORE_PASSWORD`, `F360_KEY_ALIAS`, `F360_KEY_PASSWORD`). Uninstall this
+build before installing one signed with your key.
 
-**Verified:** `apksigner verify` OK, `jarsigner -verify` (AAB) OK, `flutter analyze` no issues, `flutter test` 22 passed,
-live API tests 11 passed against the real V29 backend on a local staging server (see `../docs/APP_TEST_REPORT.md`).
-**Not done:** installation on a device/emulator in this environment, screenshots, Play bundle upload validation.
+Tests: see `site/docs/TEST_REPORT_V30.md`. Not installed on a device here (no emulator).

@@ -1,12 +1,13 @@
-# Finance 360 — Khadak Singh Da Dhaba (multi-restaurant)
+# Finance 360 — ksdd.in (one website, one backend, one database, many restaurants)
 
 | Folder | Contents | Status |
 |---|---|---|
-| `backend_v29/` | V29 PHP/MySQL website + `/api/v1` (multi-restaurant, database per branch), migrations, docs, OpenAPI | Supplied V29 release; platform suite re-run here: 64/64 passed. **Not deployed.** |
-| `flutter_source/` | Native Flutter Android app 0.29.0 for the V29 API | analyze clean; 22 unit/widget + 11 live API tests passed |
-| `releases/` | Test-signed release APK + AAB, checksums | Session test key — **not for Play**; no server URL configured |
-| `docs/APP_TEST_REPORT.md` | What was tested, how, and what is not done | |
-| `archive_v28/` | Superseded V28 foundation (f28 API, audit, docs) | Kept for history only |
+| `site/public_html/` | V30 integrated website + backend + `/api/v1` + Super Admin (+ `tests/`, not uploaded) | All local suites pass (see report) |
+| `site/ksdd_private/` | Outside-web-root folder: config template, storage skeleton | — |
+| `site/docs/HOSTING_KSDD_IN.md` | Install, staging (`u245900320_appksdd`), production migration, rollback | Follow in order |
+| `site/docs/TEST_REPORT_V30.md` | What was tested and what is blocked | |
+| `flutter_source/` | Native Flutter Android app 0.30.0 | analyze clean, 22 unit/widget + 11 live API tests |
+| `releases/` | Hostinger ZIP, test-signed APK + AAB | Not deployed; test key — not for Play |
+| `backend_v29/`, `archive_v28/` | Supplied V29 release and V28 foundation, kept for reference | Superseded by `site/` |
 
-Nothing here has been deployed or published. Production deployment, live database migration and Play publication need
-the owner's explicit approval. Secrets (`config.php`, keystores, passwords) are never committed.
+Nothing has been deployed to ksdd.in and the production database `u245900320_ksdd` has not been touched.
