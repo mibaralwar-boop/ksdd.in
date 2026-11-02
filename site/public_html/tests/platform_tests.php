@@ -60,7 +60,7 @@ T('ADOPT-02', 'Apply: tenant + Main branch on the SAME database; financial table
     ok(str_contains($out, 'byte-identical'), $out); $b = prow('SELECT * FROM p_branches WHERE id=1'); eq($b['db_name'], 'ksdd_test_legacy'); eq($b['storage'], ''); eq(billing_entitlement(1)['state'], 'active');
     if (SHARED) { // V30: convert the adopted database to tenant_id/branch_id (verified: rows + content fingerprints identical)
         exec('F360_CONFIG=' . escapeshellarg($GLOBALS['CFG']) . ' ' . PHP_BINARY . ' tools/tenancy-migrate.php --apply --i-have-a-backup 2>&1', $o2, $rc2); eq($rc2, 0, implode("\n", $o2));
-        ok(str_contains(implode("\n", $o2), 'converted and verified'), implode("\n", $o2)); $GLOBALS['F360_SHARED_POOL'] = []; }
+        ok(str_contains(implode("\n", $o2), 'reconciliation OK'), implode("\n", $o2)); $GLOBALS['F360_SHARED_POOL'] = []; }
     return true; });
 T('ADOPT-03', 'Existing users sign in with their OLD passwords; roles/templates carried over; owner is tenant owner', function () { $u = p_login('owner@staging.test', 'OwnerPass#2026'); eq(tenancy_member_role((int)$u['id'], 1), 'owner');
     $c = p_login('counter@staging.test', 'StagingPass#2026'); $m = tenancy_memberships((int)$c['id']); eq($m[0]['branches'][0]['template'], 'counter'); return eq(tenancy_member_role((int)$c['id'], 1), 'member'); });

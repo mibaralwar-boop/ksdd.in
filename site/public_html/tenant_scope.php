@@ -18,6 +18,8 @@ declare(strict_types=1);
 final class TenantScopeError extends RuntimeException {}
 
 /** Business tables are dd_* and f3_* (platform control-plane tables are p_* and are never scoped). */
+/** Name of the constraint tying a business table's (tenant_id, branch_id) to a real platform branch. */
+function ts_fkb_name(string $table): string { return substr('fkb_' . $table, 0, 64); }
 function ts_business_name(string $name): bool { return (bool)preg_match('/^(dd|f3)_[a-z0-9_]+$/i', $name); }
 
 /** @return array<int,array{0:string,1:string}> tokens [type,text]; types: ws, c (comment), s (string), q (backtick), w (word), n (number), p (punct) */
@@ -63,7 +65,7 @@ final class TenantScoper {
         'LIMIT', 'HAVING', 'SET', 'FOR', 'LOCK', 'UNION', 'USE', 'FORCE', 'IGNORE', 'WINDOW', 'PARTITION', 'VALUES', 'VALUE', 'SELECT', 'AS', 'INTO', 'FROM'];
 
     /** @param array<string,bool> $tables existing business tables (lower-case name => true) */
-    public function __construct(string $sql, private int $tenant, private int $branch, private array $tables) {
+    public function __construct(string $sql, private int $tenant, private int $branch, private array $tables, private bool $pBranches = false) {
         $this->t = ts_tokenize($sql);
         $stack = []; $d = 0;
         foreach ($this->t as $i => [$ty, $tx]) {
@@ -142,25 +144,46 @@ final class TenantScoper {
         $parts = []; $st = $open + 1;
         foreach ($this->at($open + 1, $close, $d) as $s) if ($this->isP($s, ',')) { $parts[] = [$st, $s]; $st = $s + 1; }
         $parts[] = [$st, $close];
-        $defs = []; $extra = [];
+        // pass 1: which columns are AUTO_INCREMENT (only those keep a global single-column primary key)
+        $auto = []; $hasId = false;
+        foreach ($parts as [$pa, $pb]) { $f = $this->first($pa, $pb); if ($f === null || $this->t[$f][0] === 'p') continue;
+            $id = strtolower((string)$this->ident($f)); if ($id === 'id') $hasId = true;
+            foreach ($this->at($pa, $pb, $d) as $s) if ($this->isW($s, 'AUTO_INCREMENT')) $auto[$id] = true; }
+        $defs = []; $extra = []; $pkGlobalId = false;
         foreach ($parts as [$pa, $pb]) {
             $f = $this->first($pa, $pb); if ($f === null) continue;
             $w = $this->t[$f][0] === 'w' ? $this->up($f) : '';
             if ($this->ident($f) !== null && in_array(strtolower((string)$this->ident($f)), ['tenant_id', 'branch_id'], true)) return $this->out(); // already tenant-aware
             $k = $f; if ($w === 'CONSTRAINT') { $k = $this->nx($f, $pb); if ($k !== null && !$this->isW($k, 'PRIMARY', 'UNIQUE', 'FOREIGN', 'CHECK')) $k = $this->nx($k, $pb); $w = $k !== null && $this->t[$k][0] === 'w' ? $this->up($k) : ''; }
-            if ($w === 'PRIMARY') { $p = $this->nextParen($k, $pb) ?? $this->fail('bad PRIMARY KEY'); if ($this->colsKey($p) !== 'id') $this->prefixCols($p); $defs[] = $this->textWithPost($pa, $pb); continue; }
+            if ($w === 'PRIMARY') { $p = $this->nextParen($k, $pb) ?? $this->fail('bad PRIMARY KEY'); $ck = $this->colsKey($p);
+                if (isset($auto[$ck]) && !str_contains($ck, ',')) $pkGlobalId = $ck === 'id'; else $this->prefixCols($p);
+                $defs[] = $this->textWithPost($pa, $pb); continue; }
             if ($w === 'UNIQUE') { $p = $this->nextParen($k, $pb) ?? $this->fail('bad UNIQUE KEY'); $this->prefixCols($p); $defs[] = $this->textWithPost($pa, $pb); continue; }
-            if (in_array($w, ['KEY', 'INDEX', 'FULLTEXT', 'SPATIAL', 'FOREIGN', 'CHECK'], true)) { $defs[] = $this->text($pa, $pb); continue; }
-            // column definition: move inline PRIMARY KEY / UNIQUE to per-branch table keys
+            if ($w === 'FOREIGN') { $defs[] = $this->compositeFk($k, $pb, $pa); continue; }
+            if (in_array($w, ['KEY', 'INDEX', 'FULLTEXT', 'SPATIAL', 'CHECK'], true)) { $defs[] = $this->text($pa, $pb); continue; }
+            // column definition: move inline PRIMARY KEY (unless AUTO_INCREMENT) / UNIQUE to per-branch table keys
             $col = (string)$this->ident($f); $skip = [];
             foreach ($this->at($pa, $pb, $d) as $s) {
-                if ($this->isW($s, 'PRIMARY')) { $n2 = $this->nx($s, $pb); if ($n2 !== null && $this->isW($n2, 'KEY')) { if (strtolower($col) === 'id') continue; $skip[$s] = true; $skip[$n2] = true; $extra[] = "PRIMARY KEY (`branch_id`,`$col`)"; } }
+                if ($this->isW($s, 'PRIMARY')) { $n2 = $this->nx($s, $pb); if ($n2 !== null && $this->isW($n2, 'KEY')) { if (isset($auto[strtolower($col)])) { if (strtolower($col) === 'id') $pkGlobalId = true; continue; } $skip[$s] = true; $skip[$n2] = true; $extra[] = "PRIMARY KEY (`branch_id`,`$col`)"; } }
                 if ($this->isW($s, 'UNIQUE')) { $skip[$s] = true; $n2 = $this->nx($s, $pb); if ($n2 !== null && $this->isW($n2, 'KEY')) $skip[$n2] = true; $extra[] = "UNIQUE KEY `uq_{$col}` (`branch_id`,`$col`)"; }
+                if ($this->isW($s, 'REFERENCES')) $this->fail('inline REFERENCES on a shared business table (use a table-level FOREIGN KEY)');
             }
             $defs[] = $this->text($pa, $pb, $skip);
         }
-        $all = array_merge(['`tenant_id` INT UNSIGNED NOT NULL', '`branch_id` INT UNSIGNED NOT NULL'], $defs, $extra, ['KEY `ix_tenant_branch` (`tenant_id`,`branch_id`)']);
+        if ($hasId && $pkGlobalId) $extra[] = 'UNIQUE KEY `uq_branch_row` (`branch_id`,`id`)'; // target for composite foreign keys
+        $extra[] = 'KEY `ix_tenant_branch` (`tenant_id`,`branch_id`)';
+        if ($this->pBranches) $extra[] = 'CONSTRAINT `' . ts_fkb_name($name) . '` FOREIGN KEY (`tenant_id`,`branch_id`) REFERENCES `p_branches` (`tenant_id`,`id`)';
+        $all = array_merge(['`tenant_id` INT NOT NULL', '`branch_id` INT NOT NULL'], $defs, $extra);
         return $this->text(0, $open + 1) . implode(', ', $all) . $this->text($close, count($this->t));
+    }
+    /** FOREIGN KEY (c…) REFERENCES business_parent (r…) → FOREIGN KEY (`branch_id`, c…) REFERENCES parent (`branch_id`, r…): links can never cross branches. */
+    private function compositeFk(int $k, int $pb, int $pa): string {
+        $p1 = $this->nextParen($k, $pb) ?? $this->fail('bad FOREIGN KEY');
+        $ref = null; foreach ($this->sig as $s) if ($s > $this->match[$p1] && $s < $pb && $this->isW($s, 'REFERENCES')) { $ref = $s; break; }
+        if ($ref === null) $this->fail('bad FOREIGN KEY');
+        $pt = $this->ident($this->nx($ref, $pb) ?? -1);
+        if ($pt !== null && ts_business_name($pt)) { $p2 = $this->nextParen($ref, $pb) ?? $this->fail('bad REFERENCES'); $this->prefixCols($p1); $this->prefixCols($p2); }
+        return $this->textWithPost($pa, $pb);
     }
     private function textWithPost(int $a, int $b): string { $o = ''; for ($i = $a; $i < $b; $i++) $o .= ($this->pre[$i] ?? '') . $this->t[$i][1] . ($this->post[$i] ?? ''); return trim($o); }
 
@@ -177,7 +200,8 @@ final class TenantScoper {
             $k = $this->nx($f, $pb); if ($k !== null && $this->isW($k, 'CONSTRAINT')) { $k = $this->nx($k, $pb); if ($k !== null && !$this->isW($k, 'PRIMARY', 'UNIQUE', 'FOREIGN', 'CHECK')) $k = $this->nx($k, $pb); }
             if ($this->isW($f, 'ADD') && $k !== null && $this->isW($k, 'PRIMARY')) { $p = $this->nextParen($k, $pb) ?? $this->fail('bad ADD PRIMARY KEY'); if ($this->colsKey($p) !== 'id') $this->prefixCols($p); continue; }
             if ($this->isW($f, 'ADD') && $k !== null && $this->isW($k, 'UNIQUE')) { $p = $this->nextParen($k, $pb) ?? $this->fail('bad ADD UNIQUE'); $this->prefixCols($p); continue; }
-            foreach ($this->at($pa, $pb, $d) as $s) if ($this->isW($s, 'UNIQUE') || ($this->isW($s, 'PRIMARY') && $this->isW($this->nx($s, $pb) ?? -1, 'KEY'))) $this->fail('inline UNIQUE / PRIMARY KEY in ALTER TABLE on a shared business table');
+            if ($this->isW($f, 'ADD') && $k !== null && $this->isW($k, 'FOREIGN')) { $this->compositeFk($k, $pb, $pa); continue; }
+            foreach ($this->at($pa, $pb, $d) as $s) if ($this->isW($s, 'UNIQUE', 'REFERENCES') || ($this->isW($s, 'PRIMARY') && $this->isW($this->nx($s, $pb) ?? -1, 'KEY'))) $this->fail('inline UNIQUE / PRIMARY KEY / REFERENCES in ALTER TABLE on a shared business table');
         }
         return $this->out();
     }
@@ -423,10 +447,11 @@ final class TenantScoper {
 function ts_scope(string $sql, int $tenant, int $branch, array $tables): string {
     static $cache = [];
     if ($tenant <= 0 || $branch <= 0) throw new TenantScopeError('Tenant scope: no tenant/branch context');
-    $k = $tenant . ':' . $branch . ':' . count($tables) . ':' . $sql;
+    $pb = isset($tables['p_branches']); unset($tables['p_branches']);
+    $k = $tenant . ':' . $branch . ':' . count($tables) . ($pb ? 'P' : '') . ':' . $sql;
     if (isset($cache[$k])) return $cache[$k];
     if (count($cache) > 4000) $cache = [];
-    return $cache[$k] = (new TenantScoper($sql, $tenant, $branch, $tables))->rewrite();
+    return $cache[$k] = (new TenantScoper($sql, $tenant, $branch, $tables, $pb))->rewrite();
 }
 
 /** PDO used for branch ledgers in shared-database mode: every statement is scoped before it reaches MySQL. */
@@ -435,7 +460,7 @@ final class TenantPDO extends PDO {
     public int $branchId = 0;
     /** @var array<string,bool>|null */ private ?array $tables = null;
     public function businessTables(): array {
-        if ($this->tables === null) { $this->tables = []; foreach (parent::query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) as $t) if (ts_business_name((string)$t)) $this->tables[strtolower((string)$t)] = true; }
+        if ($this->tables === null) { $this->tables = []; foreach (parent::query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) as $t) if (ts_business_name((string)$t) || $t === 'p_branches') $this->tables[strtolower((string)$t)] = true; }
         return $this->tables;
     }
     public function scope(string $sql): string { return ts_scope($sql, $this->tenantId, $this->branchId, $this->businessTables()); }

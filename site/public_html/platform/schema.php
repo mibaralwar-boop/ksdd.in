@@ -103,7 +103,7 @@ function p_migrate(): array {
     }
     return $done;
 }
-const P_ALL_MODULES = ['closing' => true, 'expenses' => true, 'staff' => true, 'payroll' => true, 'purchases' => true, 'stock' => true, 'reports' => true, 'integrations' => true];
+// P_ALL_MODULES is defined in platform/core.php (V30: needed by billing during web registration, where this file is not loaded)
 /** Seed plan versions with price 0 and active=0: a price must be set and approved by the Super Admin before checkout is possible. */
 function p_seed_plan_versions(): void {
     $m = json_encode(P_ALL_MODULES);

@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/lib.php';
 const P_TZ = 'Asia/Kolkata';
 const P_SCHEMA = 2;
 
+const P_ALL_MODULES = ['closing' => true, 'expenses' => true, 'staff' => true, 'payroll' => true, 'purchases' => true, 'stock' => true, 'reports' => true, 'integrations' => true];
 function pcfg(): array { return (array)(cfg()['platform'] ?? []); }
 function pdb(): PDO {
     if (!empty($GLOBALS['P_PDO'])) return $GLOBALS['P_PDO'];

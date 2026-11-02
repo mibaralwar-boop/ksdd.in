@@ -49,12 +49,23 @@ check('refuses: RIGHT JOIN, NATURAL, USING, no column list, tenant assignment, T
 check('strings / comments are not touched', function () { $o = S("SELECT 'FROM dd_ledger WHERE' s, \"x\" FROM dd_files -- dd_ledger\n WHERE n='a''b' /* dd_ledger */"); has($o, "'FROM dd_ledger WHERE'", "n='a''b'", '`dd_files`.branch_id=42'); });
 check('CREATE TABLE gets tenant columns and per-branch keys', function () {
     $o = S('CREATE TABLE IF NOT EXISTS dd_newthing (id INT AUTO_INCREMENT PRIMARY KEY, code VARCHAR(20) NOT NULL UNIQUE, period CHAR(7), name VARCHAR(10), UNIQUE KEY uq_p (period,name), KEY ix (name)) ENGINE=InnoDB');
-    has($o, '`tenant_id` INT UNSIGNED NOT NULL, `branch_id` INT UNSIGNED NOT NULL', 'id INT AUTO_INCREMENT PRIMARY KEY', 'UNIQUE KEY uq_p (`branch_id`,period,name)', 'UNIQUE KEY `uq_code` (`branch_id`,`code`)', 'KEY `ix_tenant_branch`');
+    has($o, '`tenant_id` INT NOT NULL, `branch_id` INT NOT NULL', 'UNIQUE KEY `uq_branch_row` (`branch_id`,`id`)', 'id INT AUTO_INCREMENT PRIMARY KEY', 'UNIQUE KEY uq_p (`branch_id`,period,name)', 'UNIQUE KEY `uq_code` (`branch_id`,`code`)', 'KEY `ix_tenant_branch`');
     if (str_contains($o, 'NOT NULL UNIQUE')) throw new RuntimeException('inline unique left: ' . $o);
     $o = S('CREATE TABLE IF NOT EXISTS dd_kv (`key` VARCHAR(40) NOT NULL PRIMARY KEY, value TEXT)');
     has($o, 'PRIMARY KEY (`branch_id`,`key`)');
     $o = S('CREATE TABLE IF NOT EXISTS f3_x (period CHAR(7) NOT NULL, a INT, PRIMARY KEY (period))');
     has($o, 'PRIMARY KEY (`branch_id`,period)');
+});
+check('explicit (non auto-increment) id key becomes per-branch; FOREIGN KEYs become composite; rows tied to p_branches', function () {
+    global $T;
+    $o = S('CREATE TABLE IF NOT EXISTS f3_departments (id TINYINT UNSIGNED PRIMARY KEY, code VARCHAR(20) NOT NULL UNIQUE)');
+    has($o, 'PRIMARY KEY (`branch_id`,`id`)'); if (str_contains($o, 'uq_branch_row')) throw new RuntimeException('explicit id needs no extra key: ' . $o);
+    $o = S('CREATE TABLE IF NOT EXISTS f3_designations (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, dept_id TINYINT UNSIGNED NOT NULL, CONSTRAINT f3_desig_dept FOREIGN KEY (dept_id) REFERENCES f3_departments(id))');
+    has($o, 'FOREIGN KEY (`branch_id`,dept_id) REFERENCES f3_departments(`branch_id`,id)', 'id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY', 'uq_branch_row');
+    $o = ts_scope('CREATE TABLE IF NOT EXISTS dd_x (id INT AUTO_INCREMENT PRIMARY KEY)', 7, 42, $T + ['p_branches' => true]);
+    has($o, 'CONSTRAINT `fkb_dd_x` FOREIGN KEY (`tenant_id`,`branch_id`) REFERENCES `p_branches` (`tenant_id`,`id`)');
+    has(S('ALTER TABLE dd_bills ADD CONSTRAINT fk1 FOREIGN KEY (supplier_id) REFERENCES dd_suppliers(id)'), 'FOREIGN KEY (`branch_id`,supplier_id) REFERENCES dd_suppliers(`branch_id`,id)');
+    refused('CREATE TABLE dd_y (id INT AUTO_INCREMENT PRIMARY KEY, sup BIGINT REFERENCES dd_suppliers(id))');
 });
 check('ALTER TABLE ADD UNIQUE is per branch; inline unique refused', function () {
     has(S('ALTER TABLE dd_ledger ADD UNIQUE KEY uq_ref (reference)'), '(`branch_id`,reference)');

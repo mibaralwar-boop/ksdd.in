@@ -5,9 +5,10 @@
 set -euo pipefail
 SRC_DB="${1:-ksdd_corpus_test}"; DB=ksdd_rollout_test; PORT=8097
 HERE="$(cd "$(dirname "$0")/.." && pwd)"; ROOT="$(mktemp -d)"; W="$ROOT/public_html"; PRIV="$ROOT/ksdd_private"
-cp -r "$HERE" "$W"; rm -rf "$W/private" "$W/tests"; cp -r "$HERE/../ksdd_private" "$PRIV"
+cp -r "$HERE" "$W"; rm -rf "$W/private" "$W/tests"; cp -r "${KSDD_PRIVATE_SRC:-$HERE/../ksdd_private}" "$PRIV"; rm -rf "$PRIV/logs"/*.json "$PRIV/logs"/*.md
 mysql -e "DROP DATABASE IF EXISTS $DB; CREATE DATABASE $DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 mysqldump --single-transaction "$SRC_DB" | mysql "$DB"
+DBS0=$(mysql -N -e "SELECT COUNT(*) FROM information_schema.SCHEMATA")
 P=0; F=0; ok() { echo "  PASS $1"; P=$((P+1)); }; bad() { echo "  FAIL $1"; F=$((F+1)); }
 cfg() { # $1 = extra PHP array entries
 cat > "$PRIV/config.php" <<EOF
@@ -59,17 +60,20 @@ L=$(api POST auth/login '{"email":"owner@staging.test","password":"OwnerPass#202
 TOK=$(echo "$L" | j "d['access_token']")
 SEL=$(api POST tenants/select '{"tenant_id":1,"branch_id":1}' "$TOK"); TOK=$(echo "$SEL" | j "d['access_token']")
 n=$(api GET employees "" "$TOK" | j "len(d['staff'])"); [ "$n" -gt 0 ] && ok "KSDD owner signs in with OLD password via /api/v1 and sees $n staff" || bad "owner api"
+(cd "$W" && php -r 'require "platform/core.php"; p_setting_set("signup_enabled","1");') && ok "Super Admin opens self-registration (Settings)"
 R=$(api POST tenants/register '{"owner_name":"New Owner","mobile":"9876543210","email":"new@example.test","password":"NewOwnerPass#1","restaurant":"New Dhaba","city":"Delhi","state":"Delhi","pincode":"110001","branch_name":"Main","cutoff_hour":4,"accept_terms":true}')
-echo "$R" | grep -q registration && ok "self-registration accepted (email verification pending)" || bad "register: $R"
+echo "$R" | grep -q '"registration"' && ok "self-registration accepted (email verification pending)" || { bad "register"; echo "     reply: $R"; }
 VT=$(cd "$W" && php -r 'require "platform/core.php"; preg_match("/token=([A-Za-z0-9_-]{20,})/", (string)pval("SELECT body FROM p_outbox WHERE recipient=? AND kind=? ORDER BY id DESC LIMIT 1","new@example.test","verify"), $m); echo $m[1];')
-[ "$(code "http://127.0.0.1:$PORT/verify.php?token=$VT")" -lt 400 ] && ok "verification link works" || bad "verify"
-(cd "$W" && php -r 'require "platform/register.php"; foreach (prows("SELECT uid FROM p_registrations WHERE email=? AND status IN (\"verified\",\"draft\")","new@example.test") as $r) { prun("UPDATE p_registrations SET status=\"verified\" WHERE uid=?",$r["uid"]); try { reg_provision($r["uid"]); } catch (Throwable $e) { echo $e->getMessage(); } }') >/dev/null
+[ -n "$VT" ] && curl -s -o /dev/null "http://127.0.0.1:$PORT/verify.php?token=$VT"
+[ "$(mysql -N -e "SELECT COUNT(*) FROM $DB.p_users WHERE email='new@example.test' AND email_verified_at IS NOT NULL")" = 1 ] && ok "email verification link from the outbox verifies the owner" || bad "verify"
 T2=$(api POST auth/login '{"email":"new@example.test","password":"NewOwnerPass#1","device_id":"rehearsal-dev-2"}'); TID=$(echo "$T2" | j "d['memberships'][0]['id']"); BID=$(echo "$T2" | j "d['memberships'][0]['branches'][0]['id']"); TK2=$(echo "$T2" | j "d['access_token']")
 S2=$(api POST tenants/select "{\"tenant_id\":$TID,\"branch_id\":$BID}" "$TK2"); TK2=$(echo "$S2" | j "d['access_token']"); ST=$(echo "$S2" | j "d['permissions']['subscription']['state']")
 [ "$ST" = trialing ] && ok "new restaurant $TID/$BID provisioned in the SAME database, 30-day trial" || bad "trial state $ST"
 m=$(api GET employees "" "$TK2" | j "len(d['staff'])"); [ "$m" = 0 ] && ok "new restaurant sees 0 of KSDD's staff" || bad "new restaurant sees $m staff"
+dp=$(api GET departments "" "$TK2" | j "','.join(x['name'] for x in d['departments'])"); [ "$dp" = "Management,UT,Kitchen,Waiter" ] && ok "new restaurant has its OWN four payroll departments ($dp)" || bad "departments: $dp"
+fk=$(mysql -N -e "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA='$DB' AND REFERENCED_TABLE_NAME='p_branches' AND CONSTRAINT_NAME LIKE 'fkb\_%'"); [ "$fk" -ge 129 ] && ok "$fk business tables tied to a real branch by a database constraint" || bad "branch constraints $fk"
 [ "$(api POST tenants/select '{"tenant_id":1,"branch_id":1}' "$TK2" | j "d.get('code')")" = FORBIDDEN ] && ok "new owner cannot open KSDD (403)" || bad "cross-tenant select"
 [ "$(mysql -N -e "SELECT COUNT(DISTINCT branch_id) FROM $DB.dd_settings")" -ge 2 ] && ok "one database holds both restaurants' rows (tagged by branch_id)" || bad "branch rows"
-[ "$(mysql -N -e "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME LIKE 'f360%b%'")" = 0 ] && ok "no extra databases were created" || bad "extra databases"
+[ "$(mysql -N -e "SELECT COUNT(*) FROM information_schema.SCHEMATA")" = "$DBS0" ] && ok "no extra databases were created (still $DBS0 schemas on the server)" || bad "extra databases"
 stop
 a2dissite -q f360rehearsal >/dev/null; echo; echo "RESULT: $P passed, $F failed   (work dir $ROOT)"; [ $F = 0 ]
