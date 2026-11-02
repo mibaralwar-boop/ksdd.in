@@ -256,7 +256,7 @@ function mt_refresh_views(MtPDO $p): int { $n = 0; foreach ($p->rawQuery('SELECT
 function mt_portable_create(PDO $p, string $name): string {
     $reg = $p instanceof MtPDO ? $p->mtRegistry() : [];
     if (!isset($reg[$name])) { $r = $p->query('SHOW CREATE TABLE `' . $name . '`')->fetch(PDO::FETCH_NUM); return (string)$r[1]; }
-    $ddl = (string)$p->query('SHOW CREATE TABLE `' . MT_PREFIX . $name . '`')->fetch(PDO::FETCH_NUM)[1];
+    $ddl = (string)$p->rawQuery('SHOW CREATE TABLE `' . MT_PREFIX . $name . '`')->fetch(PDO::FETCH_NUM)[1]; // internal (V34 guard)
     $out = [];
     foreach (explode("\n", $ddl) as $line) {
         if (preg_match('/^\s*`(tenant_id|branch_id)`/', $line) || preg_match('/KEY `mt_scope`/', $line)) continue;
