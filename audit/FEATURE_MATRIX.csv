@@ -1,0 +1,19 @@
+V28_section,requirement,status,actual_evidence
+0,Source audit and execution contract,Partial,V28 read in full; previous actual PHP source used; schema declarations audited; production schema not supplied
+1,Multi-tenant multi-branch financial data,Incomplete,Tenant/branch metadata implemented; financial tables/services remain single-restaurant and inaccessible to new accounts
+2,Self-service restaurant registration,Partial,"Atomic registration, branch and trial implemented/tested; manual verification; phone/logo/OTP and full wizard requirements outstanding"
+3,Paid subscriptions and trials,Partial,30-day trial/expiry/branch limits tested; no paid provider/webhook/plan management or checkout
+4,Permissions on web and Android,Partial,Backend membership and deny/expiry tests pass; native metadata navigation source only; financial modules not implemented
+5,Daily closing and optional photo,Incomplete,Existing server closing regression passes; no native closing or tenant-scoped optional-photo implementation
+6,Staff/import/history,Incomplete,Existing historical services regressions pass; no tenant backfill/native history/pagination or actual workbook reconciliation
+7,Six-field salary wizard,Incomplete,Existing calendar-days server regression passes; no native wizard/offline/autosave/next employee implementation
+8,Supplier purchase and stock,Incomplete,Existing purchase/stock regressions pass; native supplier-first flow and scoped data outstanding
+9,Accounting and reporting,Incomplete,Existing synthetic accounting tests pass; no native/tenant/branch consolidated reporting
+10,Integrations and operational modules,Incomplete,Existing source retained; no tenant integration migration or live credentials tests
+11,Native Flutter UI,Partial - unvalidated,Native onboarding/metadata source prepared; no WebView; Flutter tests/analyze/build blocked
+12,API/auth/security,Partial,"Versioned logical actions, token rotation, scope checks and MFA metadata portal tested; financial services not migrated"
+13,Financial migration/rollback,Blocked,Additive metadata migration only; current live schema/mapping/restore reconciliation unavailable
+14,Executed tests,Partial,193 backend checks pass; 11 PHP files lint; Flutter/source/device/security/performance/production tests not run
+15,Signed APK and Play AAB,Blocked,Automatic review blocked Flutter verification; owner signing/package ID/configuration absent
+16,Deliverables,Partial,Foundation source/backend/docs/test evidence only; no release artifacts/screenshots/lockfile
+17,Controlled phases,Incomplete,Foundation implementation extends audit; full financial isolation and application phases not complete

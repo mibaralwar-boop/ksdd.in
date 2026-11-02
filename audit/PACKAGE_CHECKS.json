@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "Android XML well formed (not compiled)",
+    "OpenAPI JSON syntax and action count checked (not externally schema-validated)",
+    "Portal JavaScript syntax checked (not browser E2E tested)",
+    "Package path exclusion check: no real configs, keystores or private uploads"
+  ],
+  "limitation": "Not a full secret scan or Flutter validation"
+}

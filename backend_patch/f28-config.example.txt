@@ -1,0 +1,7 @@
+Merge these flags into your existing protected PHP config array only on reviewed staging:
+'f28_enabled' => true,
+'f28_allow_local_http' => false,
+
+The SaaS layer calls the existing db() connection from lib.php. It has no second DB config.
+Public registration uses manual verification pending status; there is no configured OTP provider.
+Existing config/PII encryption keys must be preserved. The default is disabled when f28_enabled is absent.

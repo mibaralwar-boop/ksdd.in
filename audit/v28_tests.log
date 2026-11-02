@@ -1,0 +1,37 @@
+PASS Default trial has 30 calendar days from authoritative timestamp
+PASS 7, 10 and 30 day admin policy grants
+PASS Unconfigured provider never claims verification
+PASS Unverified account cannot mutate tenant metadata
+PASS No unverified/unfinished financial entitlement is advertised
+PASS Tenant A token cannot select tenant B
+PASS Branch B cannot be paired with tenant A
+PASS Membership directory contains only assigned tenant
+PASS SQL-like IDs rejected before queries
+PASS Duplicate email registration atomically rolls back
+PASS Privacy consent required before account creation
+PASS Password stored as a hash; tokens stored as hashes
+PASS Verified owner can update only its restaurant branding
+PASS Branch cap enforced on server
+PASS Branch creation grants creator explicit branch membership
+PASS Explicit deny overrides owner role immediately
+PASS Expiry boundary blocks mutation but preserves authorized reads
+PASS Suspended subscription has no module permissions
+PASS Cancelled paid subscription never returns active
+PASS Financial endpoints fail closed
+PASS Refresh rotation invalidates old access token
+PASS Refresh replay revokes entire token family
+PASS Logout revokes server session
+PASS User revocation is checked on existing token
+PASS Account deletion request is idempotent and does not delete finance
+PASS Failed login attempts are rate limited
+PASS Legacy financial rows unchanged by SaaS metadata and auth tests
+PASS TOTP matches RFC6238 SHA1 vector truncated to six digits
+PASS Tenant owner role does not imply platform administrator
+PASS Platform membership still requires MFA step-up
+PASS MFA unlocks short-lived platform metadata administration
+PASS Replayed authenticator code is refused
+PASS Admin trial extension is audited and scoped to target tenant
+PASS Admin cannot silently extend a suspended account
+PASS MFA administrator may suspend target with audit reason
+PASS Platform revocation invalidates existing MFA step-up
+RESULT passed=36 failed=0
