@@ -1,0 +1,424 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance360 V28 SaaS Foundation API",
+    "version": "0.28.0",
+    "description": "Incomplete V28 foundation; no financial posting or paid checkout implementation."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/f28-api.php": {
+      "get": {
+        "summary": "Finance360 V28 GET action dispatcher",
+        "description": "Actual PHP endpoint uses the route query parameter. Register/login/refresh/plans are public as documented. All other actions require bearer authentication. Platform actions additionally require explicit platform membership and MFA step-up. Financial status is deliberately blocked. This documents only the implemented foundation.",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "route",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "/v1/memberships",
+                "/v1/context",
+                "/v1/branches",
+                "/v1/plans",
+                "/v1/financial/status",
+                "/v1/platform/tenants"
+              ]
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Required together with X-Branch-ID for context, branch, branding and financial-status routes. Resolved against authenticated membership, never trusted as authority."
+          },
+          {
+            "name": "X-Branch-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful data envelope"
+          },
+          "201": {
+            "description": "Registration committed"
+          },
+          "400": {
+            "description": "Malformed JSON"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Membership/permission/MFA denial"
+          },
+          "404": {
+            "description": "Unknown route"
+          },
+          "405": {
+            "description": "Wrong method"
+          },
+          "409": {
+            "description": "Conflict or branch limit"
+          },
+          "413": {
+            "description": "Payload too large"
+          },
+          "415": {
+            "description": "JSON required"
+          },
+          "422": {
+            "description": "Validation"
+          },
+          "426": {
+            "description": "HTTPS required"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "500": {
+            "description": "Internal error without sensitive details"
+          },
+          "503": {
+            "description": "Not enabled or financial migration pending"
+          }
+        }
+      },
+      "post": {
+        "summary": "Finance360 V28 POST action dispatcher",
+        "description": "Actual PHP endpoint uses the route query parameter. Register/login/refresh/plans are public as documented. All other actions require bearer authentication. Platform actions additionally require explicit platform membership and MFA step-up. Financial status is deliberately blocked. This documents only the implemented foundation.",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "route",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "/v1/register",
+                "/v1/login",
+                "/v1/refresh",
+                "/v1/logout",
+                "/v1/branches/create",
+                "/v1/branding",
+                "/v1/account/deletion-request",
+                "/v1/platform/step-up",
+                "/v1/platform/trial",
+                "/v1/platform/suspend"
+              ]
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Required together with X-Branch-ID for context, branch, branding and financial-status routes. Resolved against authenticated membership, never trusted as authority."
+          },
+          {
+            "name": "X-Branch-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful data envelope"
+          },
+          "201": {
+            "description": "Registration committed"
+          },
+          "400": {
+            "description": "Malformed JSON"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Membership/permission/MFA denial"
+          },
+          "404": {
+            "description": "Unknown route"
+          },
+          "405": {
+            "description": "Wrong method"
+          },
+          "409": {
+            "description": "Conflict or branch limit"
+          },
+          "413": {
+            "description": "Payload too large"
+          },
+          "415": {
+            "description": "JSON required"
+          },
+          "422": {
+            "description": "Validation"
+          },
+          "426": {
+            "description": "HTTPS required"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "500": {
+            "description": "Internal error without sensitive details"
+          },
+          "503": {
+            "description": "Not enabled or financial migration pending"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "register": {
+                  "value": {
+                    "owner_name": "Fixture owner",
+                    "email": "owner@example.invalid",
+                    "password": "REPLACE_WITH_PRIVATE_PASSWORD",
+                    "restaurant_name": "Restaurant",
+                    "address": "Address",
+                    "city": "Alwar",
+                    "privacy_consent": true
+                  }
+                },
+                "logout": {
+                  "value": {}
+                },
+                "stepup": {
+                  "value": {
+                    "code": "000000"
+                  }
+                },
+                "trial": {
+                  "value": {
+                    "tenant_id": 1,
+                    "days": 7,
+                    "reason": "Approved extension reference"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "owner_name",
+          "email",
+          "password",
+          "restaurant_name",
+          "address",
+          "city",
+          "privacy_consent"
+        ],
+        "properties": {
+          "owner_name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 190
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "restaurant_name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "branch_name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "privacy_consent": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi"
+            ]
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-implemented-actions": [
+    {
+      "route": "/v1/register",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/login",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/refresh",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/logout",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/memberships",
+      "method": "GET"
+    },
+    {
+      "route": "/v1/context",
+      "method": "GET"
+    },
+    {
+      "route": "/v1/branches",
+      "method": "GET"
+    },
+    {
+      "route": "/v1/branches/create",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/branding",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/plans",
+      "method": "GET"
+    },
+    {
+      "route": "/v1/account/deletion-request",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/financial/status",
+      "method": "GET"
+    },
+    {
+      "route": "/v1/platform/step-up",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/platform/tenants",
+      "method": "GET"
+    },
+    {
+      "route": "/v1/platform/trial",
+      "method": "POST"
+    },
+    {
+      "route": "/v1/platform/suspend",
+      "method": "POST"
+    }
+  ]
+}

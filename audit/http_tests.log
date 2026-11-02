@@ -1,0 +1,18 @@
+PASS Unknown route
+PASS Wrong HTTP method
+PASS Non-JSON content rejected
+PASS Malformed JSON rejected
+PASS JSON list is not an object
+PASS Oversized body rejected
+PASS Atomic HTTP registration
+PASS Duplicate HTTP signup
+PASS Membership listing
+PASS Scoped context
+PASS Manual verification transparently pending
+PASS Tenant ID cannot override membership
+PASS Financial APIs fail closed
+PASS Tenant owner cannot read platform metadata
+PASS Empty JSON object is accepted for logout
+PASS Logout invalidates token
+PASS Logout invalidates refresh family
+RESULT passed=17 failed=0
