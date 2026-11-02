@@ -1,0 +1,10 @@
+# Finance 360 API v1 front controller. Hostinger (LiteSpeed/Apache) supports mod_rewrite.
+# Fallback without rewrite: api/v1/index.php?__path=auth/login
+Options -Indexes
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ index.php?__path=$1 [QSA,L]
+</IfModule>
+# Pass the Authorization header through on hosts that strip it
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1

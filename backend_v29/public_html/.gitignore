@@ -1,0 +1,5 @@
+config.php
+private/p_fake_now.txt
+private/f3_fake_now.txt
+private/platform/*
+private/tenants/*

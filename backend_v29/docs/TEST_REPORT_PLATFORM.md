@@ -1,0 +1,72 @@
+# Platform test run — 2026-11-02 18:08 UTC
+
+Environment: PHP 8.3.6, 10.11.14-MariaDB-0ubuntu0.24.04.1 (local staging, test databases rebuilt from scratch)
+
+**Result: 64 passed, 0 failed (64)**
+
+| ID | Test | Result | Detail |
+|---|---|---|---|
+| PLAT-01 | Platform migrations apply and re-run as a no-op | PASS |  |
+| PLAT-02 | Seeded paid plan versions are inactive at ₹0 (no invented pricing; nothing purchasable until Super Admin publishes) | PASS |  |
+| ADOPT-01 | Dry run writes nothing (platform DB still empty of tenants) | PASS |  |
+| ADOPT-02 | Apply: tenant + Main branch on the SAME database; financial tables byte-identical (CHECKSUM TABLE) | PASS |  |
+| ADOPT-03 | Existing users sign in with their OLD passwords; roles/templates carried over; owner is tenant owner | PASS |  |
+| ADOPT-04 | Re-running adoption is refused as "already adopted" | PASS |  |
+| ADOPT-05 | Legacy closing set to final-on-submit (V29 §8) and legacy demo employees still visible to the owner | PASS |  |
+| REG-01 | Sign-up closed → refused | PASS |  |
+| REG-02 | Validation: missing terms / bad mobile / bad PIN / weak password refused; honeypot refused | PASS |  |
+| REG-03 | Unverified owner cannot sign in; no tenant exists before verification | PASS |  |
+| REG-04 | Duplicate submission before verifying → same registration, no second user | PASS |  |
+| REG-05 | Injected failures (after tenant row, after DB install, inside final transaction) leave NO active tenant; retry completes exactly once | PASS |  |
+| REG-06 | 30-day trial: ends 23:59:59 IST on sign-up day + 30; state trialing; owner linked as local owner in the NEW database | PASS |  |
+| REG-07 | Second tenant B registers; verify link is single-use | PASS |  |
+| REG-08 | Same owner adds another restaurant → NO second automatic trial (state none = read-only until a plan is bought) | PASS |  |
+| ISO-01 | Each restaurant has its own ledger DB and storage root; databases never shared | PASS |  |
+| ISO-02 | Owner A cannot authorise B’s branch, nor A-tenant + B-branch (composite), nor a non-existent id — same 403 message | PASS |  |
+| ISO-03 | Composite FK: a branch membership pointing at another tenant’s branch is rejected by the database | PASS |  |
+| ISO-04 | Employee created in B is invisible to A (list + search); A’s id lookup returns A’s own row, never B’s | PASS |  |
+| ISO-05 | Encrypted secrets: ciphertext from B cannot be decrypted in A (per-branch derived keys); KSDD keeps its original key | PASS |  |
+| ISO-06 | Uploaded files land under the branch’s own storage root; B’s file id read from A’s DB is not B’s file | PASS |  |
+| ISO-07 | Web session forged to B’s branch is refused; stale password revision is refused (fresh PHP process, real session) | PASS |  |
+| ISO-08 | No fallback: in platform mode db() with no resolved context fails instead of opening any database | PASS |  |
+| ISO-09 | Machine endpoint routing by branch uid rejects unknown / malformed uids (404) | PASS |  |
+| BR-01 | Owner A adds branch A2 within quota; it gets its own database; owner linked automatically | PASS |  |
+| BR-02 | Branch quota enforced (402) and trial plan limit read from plan version | PASS |  |
+| BR-03 | Cash counter invited to A1 only: can enter A1, refused on A2 | PASS |  |
+| SUB-01 | After trial end: state expired, read-only; POST blocked with 402, reads allowed | PASS |  |
+| SUB-02 | Admin extension is contiguous from max(now, end) and logged | PASS |  |
+| SUB-03 | Suspend → read-only (owner can still read); reactivate restores | PASS |  |
+| SUB-04 | Reminder jobs: 7-day reminder queued once (dedupe) for a trial ending in 7 days | PASS |  |
+| PAY-01 | Price published as a new plan version; checkout creates a server order for the exact tenant/plan/amount | PASS |  |
+| PAY-02 | Only owner/admin of THAT tenant can create an order (A’s owner for B → 403) | PASS |  |
+| PAY-03 | Bad signature → 400, logged as rejected, no access granted | PASS |  |
+| PAY-04 | Amount mismatch → order flagged for review, no credit | PASS |  |
+| PAY-05 | Valid payment.captured → credited once; period starts at trial end (contiguous); receipt issued | PASS |  |
+| PAY-06 | Replay (same event id) → duplicate; same payment under a NEW event id / order.paid → no second credit | PASS |  |
+| PAY-07 | Out-of-order payment.failed after capture never downgrades the paid order | PASS |  |
+| PAY-08 | Renewal exactly at expiry starts at the old end (no gap/overlap); paying during grace continues from the old end | PASS |  |
+| PAY-09 | Full refund revokes that period; partial refund is only flagged for review | PASS |  |
+| PAY-10 | Offline payment by billing admin: same reference never credits twice | PASS |  |
+| PAY-11 | Gateway gating: disabled → no orders and webhook 503; live keys without owner approval refused; test keys in live mode refused | PASS |  |
+| PERM-01 | Cash Counter (closing only): permissions = closing.* only; owner sees everything allowed by plan | PASS |  |
+| PERM-02 | Plan without payroll module removes payroll.* for EVERY user, owner included | PASS |  |
+| MFA-01 | RFC 6238 SHA-1 test vectors (8 digits) and ±1 step window, replay of same step refused | PASS |  |
+| ADM-01 | Admin without TOTP must set it up; wrong code refused; correct code accepted once | PASS |  |
+| ADM-02 | Support break-glass: no access before owner approval; approved → read-only (writes 403); after expiry → ended | PASS |  |
+| CLO-01 | Counter finalizes yesterday directly: status approved (final), accounting variance auto-posted once, no review task | PASS |  |
+| CLO-02 | Daybook photo optional: added after final, listed, file readable by closing users; removal after final refused; PDF refused | PASS |  |
+| CLO-03 | Counter cannot reopen a final day (needs admin correction with reason) | PASS |  |
+| API-01 | Health is public; unauthenticated finance call → 401 UNAUTHENTICATED | PASS |  |
+| API-02 | Login → tokens; finance call before choosing a branch → 409; select A1 → permissions returned | PASS |  |
+| API-03 | Hostile: A’s token selecting B’s tenant/branch → 403; old token after re-select is revoked | PASS |  |
+| API-04 | Cash Counter on the app: menus = [closing], home = closing; payroll / staff / reports routes → 403 | PASS |  |
+| API-05 | Web and app identical: same route through f360/{route} and alias gives the same JSON for the owner | PASS |  |
+| API-06 | Idempotency-Key header: same expense posted twice → one entry; read-only subscription → POST 402 SUBSCRIPTION_READ_ONLY | PASS |  |
+| API-07 | Refresh rotation; reusing an old refresh token revokes the whole family; wrong device refused | PASS |  |
+| API-08 | Revocation mid-session: owner removes the cashier → next app call fails immediately (403) | PASS |  |
+| API-09 | Webhook endpoint over HTTP: bad signature 400; valid signature 200 processed | PASS |  |
+| WEB-01 | Public pages render (200) with security headers; no invented prices; sign-in form has CSRF token | PASS |  |
+| WEB-02 | Browser sign-in → choose branch → app API works with session; legacy local login is disabled; CSRF missing → refused | PASS |  |
+| WEB-03 | Owner portal: other owner cannot open A’s tenant via ?t= (falls back to own tenant); cash counter is sent away | PASS |  |
+| WEB-04 | Platform admin portal is separate: restaurant owner session does not open it | PASS |  |
+| PUR-01 | Supplier suggestion shows ledger balance, last bill and last items with last rate; rate change needs confirmation | PASS |  |

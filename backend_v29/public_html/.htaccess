@@ -1,0 +1,21 @@
+Options -Indexes
+DirectoryIndex index.php
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set Cache-Control "no-store"
+</IfModule>
+<FilesMatch "^(config\.php|config\.example\.php|lib\.php|lib360\.php|api360\.php|finance360\.php|gl360\.php|xlsx360\.php|post360\.php|supplier360\.php|pos360\.php|report360\.php|salary360\.php|books360\.php|xls360\.php|migrations\.php|cron\.php|actions\.php|imports\.php|schema\.sql|README.*|.*\.(sql|log|json|sqlite|zip|bak|md|ps1))$">
+    Require all denied
+</FilesMatch>
+
+# Finance 360 V16: internal libraries, CLI scripts and tests are never served over the web.
+<FilesMatch "^(f360-cron\.php|platform-cron\.php|staging_setup\.php|run_tests\.php|platform_tests\.php|platform_test_config\.php|v17_tests\.php|http_tests\.sh|.*\.py|.*\.txt)$">
+    Require all denied
+</FilesMatch>
+
+# Finance 360 V16.2: installable app
+AddType application/manifest+json .webmanifest
+
+# Finance 360 V29: HSTS once HTTPS is confirmed on the domain (uncomment after checking SSL in hPanel)
+# Header always set Strict-Transport-Security "max-age=31536000"

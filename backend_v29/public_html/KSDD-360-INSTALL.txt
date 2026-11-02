@@ -1,0 +1,31 @@
+KSDD 360 — SALARY REGISTER + BOOKS (VYAPAR REPLACEMENT) + ONE-CLICK DATABASE UPGRADE
+
+NEW files:  upgrade.php            one-click database upgrade + server health (owner only)
+            books.php, books-api.php, books360.php, xls360.php        Books 360
+            salary.php, salary-api.php, salary360.php                 Salary Register
+            assets/books.js, assets/books.css, assets/salary.js, assets/salary.css, assets/salary-link.js
+CHANGED:    index.php  (sidebar: Salary Register, Books (Vyapar), Database upgrade)
+            .htaccess  (blocks direct access to the *360.php library files)
+NOT touched: config.php, and every existing table / record.
+
+INSTALL (Hostinger, ~10 minutes) — try on a staging copy first if you have one
+1. CRM → Settings → Download backup (or phpMyAdmin → Export).
+2. File Manager → CRM folder → upload this zip → Extract → overwrite.
+3. Sign in as OWNER → sidebar "Database upgrade" (or open upgrade.php) → "Run database upgrade".
+   It installs/updates CRM, Salary and Books tables in one go. Run it again after every future update.
+4. Salary Register → Import Excel → "KSDD Sallery 2026 Final copy.xlsx" → review → Import.
+5. Books → Import Vyapar → choose all 3 Vyapar files (.xls as exported) → review → Import.
+   Expected result: cash in hand = ₹1,63,680 (same as Vyapar). Re-uploading later exports only adds new rows.
+   After import a "✓ Import verified" box shows: rows read, nothing missing, no duplicates, cash ₹1,63,680,
+   item lines ₹27,52,585 (incl. ₹1,57,821 discounts), expenses ₹36,06,937 — all must say OK.
+6. Salary → Attendance & payments → upload payroll-01-Aug.xlsx → check the matches → "Save app data to August 2026".
+   Then in the same tab: section 2 → "Save links" (Vyapar "Staff …" names → staff members), section 3 shows the payments check.
+7. Books → Audit checks → July → "Convert daily ones to Cash Access" (July's 30 daily cash adjustments).
+8. Salary → August → "Use app attendance (N)" only if you decide the app attendance is correct.
+
+EVERY DAY      Books: Petpooja sale, Cash Access, expenses, purchases (with bill no + items)
+EVERY WEEK     Books → Parties & dues → pay suppliers;   deposit extra cash (Transfer)
+MONTH END      Stock → Stock count · Salary → Lock month · Books → Audit checks → Count cash & lock month
+
+Roles: Books viewing = any role with "read"; entries = "write"; import/lock = "close"; settings/unlock = owner.
+Salary = roles with "payroll". All changes go to the CRM audit log.
