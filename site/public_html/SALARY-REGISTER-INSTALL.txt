@@ -1,0 +1,22 @@
+KSDD SALARY REGISTER 360 — INSTALL (Hostinger, about 5 minutes)
+
+NEW files:      salary.php, salary-api.php, salary360.php,
+                assets/salary.js, assets/salary.css, assets/salary-link.js
+CHANGED files:  index.php  (adds "Salary Register" to the CRM sidebar)
+                .htaccess  (blocks direct access to salary360.php)
+NOT touched:    config.php and every other file / table.
+
+1. Hostinger → Databases → phpMyAdmin → Export the database (backup). Or CRM → Settings → Download backup.
+2. Test on a staging copy first if you have one (same steps).
+3. File Manager → public_html (the CRM folder) → Upload this zip → Extract → overwrite when asked.
+4. Sign in to the CRM as OWNER → sidebar "Salary Register" (or open https://ksdd.in/<crm-folder>/salary.php).
+5. Click "Set up Salary Register" (creates 4 new tables dd_sal_*; existing data is not changed).
+6. Tab "Import Excel" → choose "KSDD Sallery 2026 Final copy.xlsx" → review → Import 4 month(s).
+   Totals will match the Excel exactly (June–September 2026).
+7. Every month: "+ Start new month" → type present days / leave → click ₹ amounts to add
+   advances, fines, payments → "Pay" → Print payslips → "Lock month".
+
+Who can use it: Owner, Manager, Accounts (roles with payroll permission).
+Unlock / delete a month: Owner only. Every change is written to the CRM audit log.
+Salary payments here are NOT posted to the cash Daybook automatically — record cash salary
+in the Daybook as you do today (Cash OUT wizard → Staff Salary), or ask to enable linking later.

@@ -1,0 +1,10 @@
+public_html/private/
+public_html/config.php
+ksdd_private/config.php
+ksdd_private/logs/
+ksdd_private/uploads/
+ksdd_private/backups/
+ksdd_private/exports/
+ksdd_private/imports/
+ksdd_private/tenants/
+ksdd_private/platform/

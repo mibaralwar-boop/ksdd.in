@@ -1,0 +1,211 @@
+openapi: 3.0.3
+info:
+  title: Finance 360 REST API (for the V28 Android / Flutter app)
+  version: 1.0.0
+  description: |
+    Base URL: `https://<your-domain>/<folder>/api/v1/` (rewrite) or `.../api/v1/index.php?__path=<path>` (no rewrite).
+    **Auth**: `POST /auth/login` → Bearer access token (15 min) + refresh token (30 days, rotating, bound to `device_id`).
+    Presenting an already-used refresh token revokes the whole session family (theft protection).
+    **Context**: the active restaurant + branch is stored on the SERVER token by `POST /tenants/select` after membership checks.
+    Never send tenant/branch ids to finance routes; they are ignored. Every request re-authorises membership, so revocation is immediate.
+    **Permissions**: render ONLY `menus` / `actions` from `GET /permissions/me`. Re-fetch when `perm_version` changes, on app resume,
+    and at least every `refresh_after_seconds`. Any 403 means "hide this"; any 401 means "sign in again".
+    **Money** = integer paise (₹1 = 100). **Dates** = `YYYY-MM-DD` business dates (Asia/Kolkata, branch cut-off applied by the server).
+    **Timestamps** = UTC `YYYY-MM-DD HH:MM:SS`. **Idempotency**: send `Idempotency-Key` (8–64 chars `[A-Za-z0-9_:.-]`) on every POST;
+    a retry with the same key + body returns the first response (`duplicate: true`); same key + different body → 409.
+    **Optimistic concurrency**: closings, payroll lines and purchase drafts return `version`; send it back; a stale version → 409 (reload).
+    **Read-only subscription**: every POST except harmless ones returns **402** `SUBSCRIPTION_READ_ONLY`; reads and exports keep working.
+    **Errors**: `{ "error": "human message", "code": "VALIDATION_ERROR|UNAUTHENTICATED|SUBSCRIPTION_READ_ONLY|FORBIDDEN|NOT_FOUND|CONFLICT|GONE|TOO_LARGE|UNPROCESSABLE|RATE_LIMITED|UNAVAILABLE|SERVER_ERROR", ...extra }`.
+    409 responses may carry `needs` (`dup_reason`, `over_limit_ok`, `rates_ok`) — ask the user and repeat the call with that field set.
+    **Web = app**: every finance route below is the same server function the website uses (`f3_dispatch`); any route of the web API can
+    also be called as `/f360/{route}` with the same query/body.
+    **Payments in the Play app**: purchase endpoints are OFF by default (Play payments policy). Do not show external payment links.
+servers:
+  - url: https://example.invalid/api/v1
+security: [{ bearer: [] }]
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  schemas:
+    Error:
+      type: object
+      properties: { error: { type: string }, code: { type: string }, needs: { type: string } }
+    Tokens:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer, example: 900 }
+        refresh_expires_in: { type: integer, example: 2592000 }
+    Subscription:
+      type: object
+      properties:
+        state: { type: string, enum: [trialing, active, grace, expired, cancelled, suspended, none] }
+        label: { type: string }
+        read_only: { type: boolean }
+        days_left: { type: integer }
+        period_end: { type: string, nullable: true, description: UTC }
+        period_end_ist: { type: string }
+        plan: { type: string, nullable: true }
+        term: { type: string, nullable: true }
+        kind: { type: string, enum: [trial, paid, complimentary], nullable: true }
+    Membership:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { type: string, enum: [owner, admin, member] }
+        status: { type: string }
+        subscription: { $ref: '#/components/schemas/Subscription' }
+        branches:
+          type: array
+          items: { type: object, properties: { id: { type: integer }, name: { type: string }, city: { type: string }, primary: { type: boolean }, template: { type: string } } }
+    Permissions:
+      type: object
+      properties:
+        tenant_id: { type: integer }
+        branch_id: { type: integer }
+        branch_name: { type: string }
+        template: { type: string, example: cash_counter }
+        menus: { type: array, items: { type: string, enum: [closing, sales, expenses, cash, handover, staff, payroll, purchases, suppliers, stock, documents, reports, accounts, settings] } }
+        home: { type: string, description: 'Open this screen after sign-in (e.g. "closing" for a Cash Counter)' }
+        actions: { type: array, items: { type: string }, description: 'Effective permission keys, e.g. closing.finalize. Write actions are removed when read_only.' }
+        read_only: { type: boolean }
+        subscription: { $ref: '#/components/schemas/Subscription' }
+        plan_modules: { type: object, additionalProperties: { type: boolean } }
+        business_date: { type: string }
+        closing_target_date: { type: string }
+        perm_version: { type: string }
+        refresh_after_seconds: { type: integer }
+  parameters:
+    Idem: { name: Idempotency-Key, in: header, required: false, schema: { type: string } }
+  responses:
+    Err: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+paths:
+  /health:
+    get: { security: [], summary: Liveness, responses: { '200': { description: ok } } }
+  /auth/login:
+    post:
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, password, device_id], properties: { email: { type: string }, password: { type: string }, device_id: { type: string, minLength: 8 }, device_name: { type: string } } } } } }
+      responses:
+        '200': { description: Tokens + memberships, content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Tokens' }, { type: object, properties: { memberships: { type: array, items: { $ref: '#/components/schemas/Membership' } } } } ] } } } }
+        '401': { $ref: '#/components/responses/Err' }
+        '403': { description: Email not verified }
+        '429': { $ref: '#/components/responses/Err' }
+  /auth/refresh:
+    post:
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [refresh_token, device_id], properties: { refresh_token: { type: string }, device_id: { type: string } } } } } }
+      responses: { '200': { description: New token pair (keeps selected branch), content: { application/json: { schema: { $ref: '#/components/schemas/Tokens' } } } }, '401': { $ref: '#/components/responses/Err' } }
+  /auth/logout: { post: { summary: Revoke this device session (and its push token), responses: { '200': { description: ok } } } }
+  /auth/password-forgot:
+    post: { security: [], requestBody: { content: { application/json: { schema: { type: object, properties: { email: { type: string } } } } } }, responses: { '200': { description: Always the same answer } } }
+  /auth/profile: { get: { responses: { '200': { description: User, memberships, selected tenant/branch } } } }
+  /tenants: { get: { summary: Restaurants this account belongs to (explicit memberships only), responses: { '200': { description: ok } } } }
+  /tenants/select:
+    post:
+      summary: Choose restaurant + branch. Returns a NEW token pair bound to that context, plus permissions. Old tokens are revoked.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [tenant_id, branch_id], properties: { tenant_id: { type: integer }, branch_id: { type: integer } } } } } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Tokens' }, { type: object, properties: { permissions: { $ref: '#/components/schemas/Permissions' } } } ] } } } }
+        '403': { description: Not a member (same answer if it does not exist) }
+  /tenants/register:
+    post:
+      security: []
+      summary: Start a restaurant registration (only when sign-up is open). The owner must verify email; the restaurant activates after that.
+      requestBody: { content: { application/json: { schema: { type: object, required: [owner_name, mobile, email, password, restaurant, city, accept_terms], properties: { owner_name: { type: string }, mobile: { type: string }, email: { type: string }, password: { type: string }, restaurant: { type: string }, contact_phone: { type: string }, address: { type: string }, city: { type: string }, state: { type: string }, pincode: { type: string }, branch_name: { type: string }, cutoff_hour: { type: integer, minimum: 0, maximum: 12 }, accept_terms: { type: boolean }, logo: { type: object, properties: { data: { type: string, description: base64 }, name: { type: string } } } } } } } }
+      responses: { '201': { description: Verification email sent }, '403': { description: Sign-up closed }, '409': { description: Account exists } }
+  /branches: { get: { summary: Branches of the selected restaurant this user may open, responses: { '200': { description: ok } } } }
+  /permissions/me: { get: { responses: { '200': { description: Effective permissions, content: { application/json: { schema: { $ref: '#/components/schemas/Permissions' } } } } } } }
+  /devices/register:
+    post: { summary: Register an FCM token for this device session, requestBody: { content: { application/json: { schema: { type: object, properties: { fcm_token: { type: string } } } } } }, responses: { '200': { description: ok } } }
+  /subscriptions/plans: { get: { security: [], responses: { '200': { description: Published plans (prices from the server) } } } }
+  /subscriptions/current: { get: { responses: { '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } } } } }
+  /subscriptions/payments: { get: { summary: Owner/admin only, responses: { '200': { description: Orders & receipts } } } }
+  /subscriptions/checkout: { post: { summary: 'Disabled unless platform.billing.allow_app_checkout = true (Play policy review required)', responses: { '403': { description: Not available in the app } } } }
+  # ---- finance (same functions as the website) ----
+  /dashboard: { get: { summary: 'route dashboard (dashboard.view)', responses: { '200': { description: ok }, '403': { $ref: '#/components/responses/Err' } } } }
+  /closing:
+    get: { summary: 'Closing state for ?date= (default = day to close)', parameters: [ { name: date, in: query, schema: { type: string } } ], responses: { '200': { description: 'closing, figures, issues, version, locked' } } }
+  /closing/save:
+    post:
+      summary: 'Save wizard step (closing.entry). Body: date, version, step, cash_sale, card_sale, upi_sale, actual_cash (rupee strings), expenses_confirmed (reviewed|none), diff_reason'
+      parameters: [ { $ref: '#/components/parameters/Idem' } ]
+      responses: { '200': { description: ok }, '402': { $ref: '#/components/responses/Err' }, '409': { $ref: '#/components/responses/Err' } }
+  /closing/finalize:
+    post:
+      summary: 'FINAL on success — no admin approval (V29 §8). Body: date, version, confirm=true. Response: final, variance{variance_posted, variance_label, basis}, summary'
+      parameters: [ { $ref: '#/components/parameters/Idem' } ]
+      responses: { '200': { description: ok }, '409': { description: Already closed / stale version }, '422': { description: Blocking issues listed in message } }
+  /closing/photos:
+    get: { summary: 'Daybook photos for ?date=', responses: { '200': { description: ok } } }
+    post: { summary: 'Add optional daybook photo. Body: date, file{data(base64 JPG/PNG/WEBP ≤1.5 MB), name}. Allowed before and after finalising; max 6', parameters: [ { $ref: '#/components/parameters/Idem' } ], responses: { '200': { description: ok } } }
+  /closing/photos/remove: { post: { summary: 'Only while the day is open', responses: { '200': { description: ok }, '409': { description: Day closed } } } }
+  /closing/correction: { post: { summary: 'Request correction of a locked day (reason)', responses: { '200': { description: ok } } } }
+  /sales: { get: { summary: 'sales-history ?from=&to= (sales.view)', responses: { '200': { description: ok } } } }
+  /expenses:
+    get: { summary: 'List (expenses.view) ?from=&to=&category=', responses: { '200': { description: ok } } }
+    post: { summary: 'expense-save (expenses.create): date, category, amount, account, description, file?', parameters: [ { $ref: '#/components/parameters/Idem' } ], responses: { '200': { description: ok }, '409': { description: 'Possible duplicate (send again with confirmation fields)' } } }
+  /expenses/categories: { get: { responses: { '200': { description: ok } } } }
+  /cashbook: { get: { summary: 'book ?account=&from=&to=', responses: { '200': { description: ok } } } }
+  /handover:
+    get: { summary: handovers, responses: { '200': { description: ok } } }
+    post: { summary: 'handover-send: a transfer, never income', responses: { '200': { description: ok } } }
+  /handover/respond: { post: { summary: 'receiver accepts / disputes', responses: { '200': { description: ok } } } }
+  /employees: { get: { summary: 'staff list (staff.view) ?dept=&q=&status=', responses: { '200': { description: ok } } }, post: { summary: staff-save, responses: { '200': { description: ok } } } }
+  /employees/one: { get: { parameters: [ { name: id, in: query, schema: { type: integer } } ], responses: { '200': { description: ok } } } }
+  /departments: { get: { summary: 'Management, UT, Kitchen, Waiter (+ designations)', responses: { '200': { description: ok } } } }
+  /salary/periods: { get: { summary: payroll-months, responses: { '200': { description: ok } } } }
+  /salary/sheet: { get: { summary: 'payroll ?period=YYYY-MM — rows with Pending/Draft/Completed state', responses: { '200': { description: ok } } } }
+  /salary/drafts:
+    get: { summary: 'payroll-line ?period=&employee_id= (prefill + calc)', responses: { '200': { description: ok } } }
+    post: { summary: 'payroll-line autosave: period, employee_id, version, present, absent, half_days, paid_leave, advance_recovery, penalty_ids. Divisor = calendar days of the month', parameters: [ { $ref: '#/components/parameters/Idem' } ], responses: { '200': { description: 'saved line + new version. Save & Next: only after this 200, pick the next row whose state is Pending/Draft from GET /salary/sheet (department → designation order), as the website does' }, '409': { description: Version conflict } } }
+  /salary/open: { post: { responses: { '200': { description: ok } } } }
+  /salary/submit: { post: { responses: { '200': { description: ok } } } }
+  /salary/approve: { post: { responses: { '200': { description: ok } } } }
+  /salary/payments: { post: { summary: payroll-pay, parameters: [ { $ref: '#/components/parameters/Idem' } ], responses: { '200': { description: ok } } } }
+  /salary/history: { get: { summary: 'Imported historical months (read-only record) ?month=', responses: { '200': { description: ok } } } }
+  /salary/payslip: { get: { responses: { '200': { description: ok } } } }
+  /staff-entries: { get: { responses: { '200': { description: ok } } } }
+  /advances: { post: { summary: 'staff-txn kind=advance', responses: { '200': { description: ok } } } }
+  /penalties: { post: { summary: 'staff-txn kind=penalty', responses: { '200': { description: ok } } } }
+  /overtime: { post: { summary: 'staff-txn kind=overtime (paid immediately; shown in salary for information only)', responses: { '200': { description: ok } } } }
+  /suppliers: { get: { responses: { '200': { description: ok } } }, post: { summary: supplier-save, responses: { '200': { description: ok } } } }
+  /suppliers/one: { get: { responses: { '200': { description: ok } } } }
+  /suppliers/suggest: { get: { summary: 'Supplier-first purchase: ?supplier_id= → balance (ledger), last_bill, suggested_items[last_rate, unit, other_suppliers (per stock unit)]', responses: { '200': { description: ok } } } }
+  /suppliers/pay: { post: { parameters: [ { $ref: '#/components/parameters/Idem' } ], responses: { '200': { description: ok } } } }
+  /purchase-bills: { get: { responses: { '200': { description: ok } } }, post: { summary: bill-save (draft), responses: { '200': { description: ok } } } }
+  /purchase-bills/one: { get: { responses: { '200': { description: ok } } } }
+  /purchase-bills/submit: { post: { summary: 'bill-submit. 409 needs=rates_ok with rate_changes[] when a rate differs from the last bill → confirm and resend with rates_ok=1', parameters: [ { $ref: '#/components/parameters/Idem' } ], responses: { '200': { description: ok }, '409': { $ref: '#/components/responses/Err' } } } }
+  /purchase-bills/attach: { post: { responses: { '200': { description: ok } } } }
+  /items: { get: { responses: { '200': { description: ok } } }, post: { responses: { '200': { description: ok } } } }
+  /items/one: { get: { responses: { '200': { description: ok } } } }
+  /items/price-history: { get: { responses: { '200': { description: ok } } } }
+  /stock: { get: { responses: { '200': { description: ok } } } }
+  /stock/moves: { get: { responses: { '200': { description: ok } } } }
+  /stock/move: { post: { responses: { '200': { description: ok } } } }
+  /stock/consume: { post: { responses: { '200': { description: ok } } } }
+  /stock/counts: { get: { responses: { '200': { description: ok } } } }
+  /stock/count: { get: { responses: { '200': { description: ok } } } }
+  /stock/count/start: { post: { responses: { '200': { description: ok } } } }
+  /stock/count/save: { post: { responses: { '200': { description: ok } } } }
+  /stock/count/approve: { post: { summary: 'Uses per-line snapshot; movements after counting are not treated as differences', responses: { '200': { description: ok } } } }
+  /stock/reorder: { get: { responses: { '200': { description: ok } } } }
+  /stock/valuation: { get: { responses: { '200': { description: ok } } } }
+  /documents: { get: { responses: { '200': { description: ok } } }, post: { responses: { '200': { description: ok } } } }
+  /reports/daily: { get: { responses: { '200': { description: ok } } } }
+  /reports/monthly: { get: { responses: { '200': { description: ok } } } }
+  /reports/staff: { get: { responses: { '200': { description: ok } } } }
+  /reports/gl: { get: { summary: '?what=trial|pnl|bs|ledger', responses: { '200': { description: ok } } } }
+  /reports/aging: { get: { responses: { '200': { description: ok } } } }
+  /reports/export: { get: { summary: 'File download (PDF / Excel / CSV) — reports.export', responses: { '200': { description: binary } } } }
+  /notifications: { get: { responses: { '200': { description: ok } } } }
+  /files: { get: { summary: 'Private file ?id= (permission-checked against its linked record)', responses: { '200': { description: binary } } } }
+  /files/thumb: { get: { responses: { '200': { description: image/jpeg } } } }
+  /search: { get: { responses: { '200': { description: ok } } } }
+  /f360/{route}:
+    parameters: [ { name: route, in: path, required: true, schema: { type: string } } ]
+    get: { summary: Any GET route of the web API, responses: { '200': { description: ok } } }
+    post: { summary: Any POST route of the web API, responses: { '200': { description: ok } } }
