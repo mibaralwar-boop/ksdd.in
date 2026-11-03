@@ -110,7 +110,7 @@ void main() {
     await t.tap(inNav('More'));
     await t.pumpAndSettle();
     expect(find.text('Purchase bills'), findsOneWidget);
-    for (final hidden in ['Sales', 'Salary', 'Cash book', 'Accounts', 'Staff payments', 'Users & permissions']) {
+    for (final hidden in ['Sales', 'Salary', 'Cash book', 'Accounts', 'Staff payments', 'Users & permissions', 'Subscription']) {
       expect(find.text(hidden), findsNothing, reason: '$hidden must be absent for a storekeeper');
     }
     s.dispose();

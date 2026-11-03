@@ -1,4 +1,11 @@
-# Finance 360 Android app (Flutter) — v0.36.0
+# Finance 360 Android app (Flutter) — v0.38.0
+
+**V38:** complete salary wizard (Present-first entry, previous balances owed to / by the employee, status tabs, Next pending),
+Record Salary Payment (Cash / Online + amount, partial, idempotent), Add / Mark Left / Rejoin staff, backend-controlled force-update
+client. Report: `../docs/v38/V38_APP_REPORT.md`; backend items for later: `../docs/v38/BACKEND_CHANGE_REQUESTS_LATER.md`.
+Staging build adds `--dart-define=DIST_CHANNEL=direct`.
+
+## V36
 
 **V36:** orange/cream design merged into the working app, plus native Sales history, Cash book, Accounts, Cash handover,
 Suppliers (ledger, aging, pay), Purchase bills, Stock movements, Documents, Notifications, Staff payments, Salary history,

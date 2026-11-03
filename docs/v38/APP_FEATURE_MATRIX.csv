@@ -1,0 +1,38 @@
+Priority,Area,Requirement,Status,Evidence (test),Files,Notes / blocker
+P0,Salary,Present Days mandatory (0 allowed); Half Days and Leave optional default 0,DONE & TESTED,v38_test: Present Days is mandatory…; widgets_test Salary six-field compatible; live V38 Full month,lib/screens/salary.dart,
+P0,Salary,Other inputs (absent override / advance recovery / penalties) folded in Adjustments & details; six-field server compatibility,DONE & TESTED,v38_test (absent field not shown until opened); widgets_test save body,lib/screens/salary.dart,
+P0,Salary,Attendance validation: negatives / present > employed days / present+half+leave > employed days refused before save,DONE & TESTED,v38_test attendance over the employed days,lib/screens/salary.dart,Overlapping DATE-based attendance needs day-wise data the server does not keep
+P0,Salary,Previous balances: owed TO employee vs owed BY employee separate; penalties; paid; OT paid info only,DONE & TESTED,v38_test previous balances…; live: balance keys present,lib/screens/salary.dart,Arrears per month detail = backend B7
+P0,Salary,No automatic advance recovery; explicit amount ≤ outstanding; agreed instalment only on tap,DONE & TESTED,v38_test save body advance_recovery '0',lib/screens/salary.dart,
+P0,Salary,Balance verification unavailable → no fabricated zeros; Save & Next disabled,DONE & TESTED,v38_test balance verification unavailable,lib/screens/salary.dart,
+P0,Salary,Record payment: Cash or Online mandatory; Online → UPI/Bank; amount mandatory >0 ≤ due; partial allowed,DONE & TESTED,v38_test validation + Cash flow; live V38 (server 400/422 too),lib/screens/salary_pay.dart,Choice of a specific account = backend B3; UTR-required policy = B5
+P0,Salary,Confirmation; idempotent POST; lost reply retried with same key; receipt; due after,DONE & TESTED,v38_test same Idempotency-Key; live: retried payment counted once,lib/screens/salary_pay.dart,Full receipt fields = backend B6
+P0,Salary,Status only after server: Pending / Draft / Ready / Part paid / Paid / Left; Part paid stays to-pay,DONE & TESTED,v38_test pure payStatus; live part_paid → paid,lib/screens/salary.dart,
+P0,Salary,Automatic next pending (Save & Next) and next payable after full payment,DONE & TESTED,v38_test Save & Next; sheet full payment opens next,lib/screens/salary.dart,
+P0,Staff,Add staff (dept/designation/basic/joining date/code); duplicate code refused; roster refresh adds mid-month joiner,DONE & TESTED,v38_test Add staff 409; live Add staff eligible_days 16,lib/screens/staff.dart; salary.dart,
+P0,Staff,Mark left: last working day + reason mandatory; record kept; open month pays only days to exit,DONE & TESTED,v38_test Mark left; live eligible_days 5,lib/screens/staff.dart,Settlement summary = backend B8
+P0,Staff,Exclude from this month (separate from exit; reason; payroll.approve),IMPLEMENTED NOT TESTED,—,lib/screens/salary.dart,Undo exclude = backend B2
+P0,Staff,Rejoin / reactivate,DONE & TESTED (no effective date),live rejoin restores,lib/screens/staff.dart,Rejoin date + employment periods = backend B1
+P0,Staff,Never delete staff,DONE,no delete action exists,lib/screens/staff.dart,
+P0,Release,Force update client: policy check start/login/resume/30 min; integer versionCode; required/optional,DONE & TESTED,v38_test force update group + widget,lib/core/update_policy.dart; screens/update.dart; main.dart,
+P0,Release,Update Required blocks whole app; closes open pages; back cannot bypass; writes refused locally,DONE & TESTED,v38_test mandatory update widget,lib/main.dart; core/api.dart,
+P0,Release,Trusted destinations: Play listing of installed package only; direct APK HTTPS on allow-listed host,DONE & TESTED,v38_test URL rules,lib/core/update_policy.dart,
+P0,Release,Offline: fresh cached mandatory policy enforced; expired cache fail-open; 401/404 = no policy,DONE & TESTED,v38_test checker,lib/core/update_policy.dart,
+P0,Release,Server policy route + Super Admin editor + 426 enforcement,CLIENT READY - SERVER BLOCKED,—,—,backend A1–A4
+P0,Security,Permission-only menus/actions; tenant/branch from token,DONE & TESTED,v36 + widgets tests; live isolation + cash counter 403,lib/screens/shell.dart; core/session.dart,
+P0,Accounting,Cash Acess vs drawer variance,UNCHANGED (server-separated),existing closing tests,lib/screens/closing.dart,Label wording change needs server text (backend D7)
+P0,Purchase,Photo required at final posting; draft optional,CLIENT READY - SERVER BLOCKED,existing purchase test,lib/screens/purchase.dart,Server policy/enforcement D2
+P1,Payroll,Salary slip / payment history per person,DONE (view),v38 layout test renders history,lib/screens/salary_pay.dart,PDF/share = backend B9; cancel payment from app = B4
+P1,Payroll,28/29/30/31 days and leap year,DONE (server) & TESTED,live: divisor 31 for Oct; UI shows calendar days from server,lib/screens/salary.dart,Leap-year February not run live (no Feb 2028 sheet)
+P1,Stock,Physical count / transfers / move approval,NOT DONE,—,lib/screens/stock.dart,Count snapshot API = backend D1 (website keeps it)
+P1,Purchase,Photo after posting and bill detail,PARTIAL,bill detail exists (V36),lib/screens/bills.dart,attach after post = backend D3
+P1,Reports,Full GL / P&L / cash-flow; errors visible,UNCHANGED from V36,existing,lib/screens/reports.dart,
+P1,Staff,Protected bank fields and branch assignment,DONE (view gated by staff.bank),—,lib/screens/staff.dart,Branch assignment edit stays on website
+P1,Language,Full Hindi/English ARB localization,NOT DONE,—,—,Only navigation labels translated; language choice now persisted (main.dart). Full ARB translation of ~600 strings not done in this task
+P1,SaaS,Trial shown only from server; 10 days,DONE (client); server setting,—,lib/screens/shell.dart; account.dart,Super Admin already has trial_days field → set 10 (no code)
+P1,Document,Upload permission and secure preview,PARTIAL (upload yes; preview no),V36 live upload,lib/screens/documents.dart,preview = backend D4
+P1,Nav,Subscription only for owner / user managers,DONE & TESTED,v36 storekeeper test (Subscription hidden),lib/screens/shell.dart,
+P1,Device,Camera / keyboard / back / notifications on a phone,NOT TESTED,—,android/,No emulator/device in this environment
+P2,Design,Orange/cream layouts 320–412 dp × 1.0–2.0 text,DONE & TESTED,v38 layout tests (320/360/412; 1.0/1.3/2.0) + V36 sweep,lib/,Fixed 2 overflows found by the tests
+P2,Support,Ticket and backup screens,CLIENT NOT BUILT - SERVER BLOCKED,—,—,No ticket API (backend D5)
+P2,QA,Matrix / tests / packaging,DONE,docs/v38/evidence,docs/v38,

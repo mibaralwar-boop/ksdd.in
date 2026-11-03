@@ -88,6 +88,12 @@ class Api {
   /// Called when the server rejects the session for good (refresh failed / revoked).
   void Function()? onSessionLost;
 
+  /// V38: set while a mandatory app update is pending — every write is refused locally before it leaves the phone.
+  bool Function()? writesBlocked;
+
+  /// V38: sent with every request so the server can later refuse outdated clients (X-App-Version-Code etc.).
+  Map<String, String> clientHeaders = const {};
+
   bool get configured =>
       base.host.isNotEmpty &&
       (base.scheme == 'https' ||
@@ -174,8 +180,12 @@ class Api {
   Future<Map<String, dynamic>> get(String path, [Map<String, String>? query]) => _authed('GET', path, query: query);
 
   /// POST with an Idempotency-Key. Pass the same [idem] when the user retries the same action.
-  Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body, {String? idem}) =>
-      _authed('POST', path, body: body, idem: idem ?? randomKey());
+  Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body, {String? idem}) {
+    if (writesBlocked?.call() == true) {
+      return Future.error(ApiError(426, 'UPDATE_REQUIRED', 'Update Finance 360 to continue. Nothing was saved.'));
+    }
+    return _authed('POST', path, body: body, idem: idem ?? randomKey());
+  }
 
   Future<Map<String, dynamic>> _authed(String method, String path,
       {Map<String, String>? query, Map<String, dynamic>? body, String? idem}) async {
@@ -190,7 +200,7 @@ class Api {
     }
   }
 
-  Future<Map<String, dynamic>> publicGet(String path) => _send('GET', path, auth: false);
+  Future<Map<String, dynamic>> publicGet(String path, [Map<String, String>? query]) => _send('GET', path, query: query, auth: false);
   Future<Map<String, dynamic>> publicPost(String path, Map<String, dynamic> body) => _send('POST', path, body: body, auth: false);
 
   Future<Map<String, dynamic>> _send(String method, String path,
@@ -198,7 +208,7 @@ class Api {
     if (!configured) {
       throw ApiError(0, 'NOT_CONFIGURED', 'A secure Finance 360 server address must be configured for this build.');
     }
-    final headers = <String, String>{'Accept': 'application/json'};
+    final headers = <String, String>{'Accept': 'application/json', ...clientHeaders};
     if (auth && _access != null) headers['Authorization'] = 'Bearer $_access';
     if (body != null) headers['Content-Type'] = 'application/json';
     if (idem != null) headers['Idempotency-Key'] = idem;

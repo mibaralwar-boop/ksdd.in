@@ -179,7 +179,8 @@ void main() {
     s.dispose();
   });
 
-  testWidgets('Salary: six inputs, server preview, Save & Next opens next pending employee in the same department', (t) async {
+  testWidgets('Salary: six-field compatible inputs, server preview, Save & Next opens next pending employee in the same department',
+      (t) async {
     late Session s;
     late FakeServer srv;
     final sheet = fixture('sheet');
@@ -230,18 +231,14 @@ void main() {
         MaterialApp(home: SalaryLineScreen(session: s, period: '2026-10', employeeId: first['employee_id'] as int, sheetLines: lines)));
     await t.pumpAndSettle();
     expect(find.text('${first['name']}'), findsOneWidget);
-    for (final label in [
-      '1 · Present days *',
-      '2 · Absent days (auto if empty)',
-      '3 · Half days',
-      '4 · Paid leave days',
-      '5 · Advance recovery'
-    ]) {
+    // V38: Present required, Half days / Paid leave optional; the other three of the six fields are under "Adjustments & details".
+    await t.scrollUntilVisible(find.text('Adjustments & details'), 300, scrollable: find.byType(Scrollable).first);
+    for (final label in ['Present days *', 'Half days', 'Paid / approved leave']) {
       expect(find.widgetWithText(TextFormField, label), findsOneWidget);
     }
-    expect(find.text('6 · Approved penalty deduction'), findsOneWidget);
-    await t.enterText(find.widgetWithText(TextFormField, '1 · Present days *'), '28');
-    await t.enterText(find.widgetWithText(TextFormField, '3 · Half days'), '2');
+    expect(find.text('Adjustments & details'), findsOneWidget);
+    await t.enterText(find.widgetWithText(TextFormField, 'Present days *'), '28');
+    await t.enterText(find.widgetWithText(TextFormField, 'Half days'), '2');
     await t.pump(const Duration(milliseconds: 700));
     await t.pumpAndSettle();
     expect(find.text('₹23,387.10'), findsWidgets); // server preview value

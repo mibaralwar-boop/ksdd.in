@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:finance360/core/api.dart';
 import 'package:finance360/core/session.dart';
+import 'package:finance360/core/format.dart';
 import 'package:finance360/screens/salary.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -355,6 +356,121 @@ void main() {
       await expectLater(c.api.get(r), apiError(403), reason: r);
     }
     c.dispose();
+  });
+
+  group('V38 salary + staff against the real backend (owner of Khadak Singh Da Dhaba)', () {
+    late Session s;
+    setUpAll(() async => s = await signIn('owner@staging.test', 'OwnerPass#2026', tenant: 1, branch: 1));
+    tearDownAll(() => s.dispose());
+    const period = '2026-10';
+
+    test('Add staff (duplicate code refused) → roster refresh puts the new joiner on the open month with eligible days', () async {
+      var sheet = await s.api.get('salary/sheet', {'period': period});
+      if (sheet['exists'] != true) await s.api.post('salary/open', {'period': period});
+      final deps = ((await s.api.get('departments'))['departments'] as List).cast<Map>();
+      final kitchen = deps.firstWhere((d) => d['name'] == 'Kitchen');
+      final desig = (kitchen['designations'] as List).cast<Map>().first['id'];
+      final existingCode = ((await s.api.get('employees'))['staff'] as List).cast<Map>().first['code'];
+      await expectLater(
+          s.api.post('employees', {
+            'name': 'LIVE Duplicate',
+            'code': existingCode,
+            'dept_id': kitchen['id'],
+            'desig_id': desig,
+            'monthly': '9000',
+            'joined_on': '2026-10-16'
+          }),
+          apiError(409));
+      final r = await s.api.post('employees',
+          {'name': 'LIVE New Cook', 'dept_id': kitchen['id'], 'desig_id': desig, 'monthly': '15500', 'joined_on': '2026-10-16'});
+      final id = r['id'];
+      await s.api.post('salary/open', {'period': period}); // the app's roster refresh
+      sheet = await s.api.get('salary/sheet', {'period': period});
+      final l = (sheet['lines'] as List).cast<Map>().firstWhere((x) => x['employee_id'] == id);
+      expect(l['eligible_days'], 16, reason: 'joined 16 Oct → 16 of 31 days');
+      final line = await s.api.get('salary/drafts', {'period': period, 'employee_id': '$id'});
+      for (final k in balanceKeys) {
+        expect((line['context'] as Map)[k], isA<num>(), reason: 'previous-balance key $k must come from the server');
+      }
+    });
+
+    test('Mark left needs date + reason; the open month pays only the days up to the exit; record kept; rejoin restores', () async {
+      final staff = ((await s.api.get('employees'))['staff'] as List).cast<Map>().firstWhere((x) => x['name'] == 'LIVE New Cook');
+      await expectLater(s.api.post('f360/staff-exit', {'id': staff['id'], 'left_on': '2026-10-20'}), apiError(400));
+      await s.api.post('f360/staff-exit', {'id': staff['id'], 'left_on': '2026-10-20', 'reason': 'live test: moved city'});
+      await s.api.post('salary/open', {'period': period});
+      final sheet = await s.api.get('salary/sheet', {'period': period});
+      final l = (sheet['lines'] as List).cast<Map>().firstWhere((x) => x['employee_id'] == staff['id']);
+      expect(l['eligible_days'], 5, reason: 'joined 16 Oct, left 20 Oct → 5 paid-eligible days, not the whole month');
+      final one = await s.api.get('employees/one', {'id': '${staff['id']}'});
+      expect((one['staff'] as Map)['status'], 'left');
+      await s.api.post('f360/staff-exit', {'id': staff['id'], 'rejoin': 1});
+      expect(((await s.api.get('employees/one', {'id': '${staff['id']}'}))['staff'] as Map)['status'], 'active');
+    });
+
+    test('Full month: enter every line (present only, half/leave 0, advance 0) → submit → approve → part pay Cash → pay rest Online',
+        () async {
+      var sheet = await s.api.get('salary/sheet', {'period': period});
+      for (final l in (sheet['lines'] as List).cast<Map>()) {
+        if (l['entry_status'] == 'excluded' || l['entry_status'] == 'completed') continue;
+        final line = await s.api.get('salary/drafts', {'period': period, 'employee_id': '${l['employee_id']}'});
+        final elig = (line['context'] as Map)['eligible_days'] as num;
+        await s.api.post('salary/drafts', {
+          'period': period,
+          'employee_id': l['employee_id'],
+          'action': 'save',
+          'version': line['version'],
+          'present': '${elig.toInt() - 1}',
+          'absent': '',
+          'half_days': '0',
+          'paid_leave': '0',
+          'rest_days': '',
+          'advance_recovery': '0',
+          'penalty_ids': <int>[],
+        });
+      }
+      sheet = await s.api.get('salary/sheet', {'period': period});
+      if (sheet['status'] == 'draft') await s.api.post('salary/submit', {'period': period});
+      sheet = await s.api.get('salary/sheet', {'period': period});
+      if (sheet['status'] == 'review') await s.api.post('salary/approve', {'period': period, 'version': sheet['version']});
+      sheet = await s.api.get('salary/sheet', {'period': period});
+      expect(sheet['status'], anyOf('approved', 'locked'));
+      final lines = [for (final l in sheet['lines'] as List) (l as Map).cast<String, dynamic>()];
+      final l = lines.firstWhere((x) => payStatus(x) == 'ready' && (x['balance'] as int) > 20000);
+      final due = l['balance'] as int;
+      // amount 0 and over-due are refused by the server too
+      await expectLater(
+          s.api.post('salary/payments', {'period': period, 'employee_id': l['employee_id'], 'amount': '0', 'mode': 'Cash'}), apiError(400));
+      await expectLater(
+          s.api.post(
+              'salary/payments', {'period': period, 'employee_id': l['employee_id'], 'amount': rupeeInput(due + 100), 'mode': 'Cash'}),
+          apiError(422));
+      final k1 = randomKey();
+      final part = {'period': period, 'employee_id': l['employee_id'], 'amount': '100', 'mode': 'Cash', 'client_key': k1};
+      final p1 = await s.api.post('salary/payments', part, idem: k1);
+      await s.api.post('salary/payments', part, idem: k1); // retried: must not pay twice
+      expect(p1['balance'], due - 10000);
+      var now = (await s.api.get('salary/sheet', {'period': period}))['lines'] as List;
+      expect(payStatus((now.cast<Map>().firstWhere((x) => x['employee_id'] == l['employee_id'])).cast<String, dynamic>()), 'part_paid');
+      final k2 = randomKey();
+      final p2 = await s.api.post(
+          'salary/payments',
+          {
+            'period': period,
+            'employee_id': l['employee_id'],
+            'amount': rupeeInput(due - 10000),
+            'mode': 'UPI',
+            'reference': 'LIVE-UTR-1',
+            'client_key': k2
+          },
+          idem: k2);
+      expect(p2['balance'], 0);
+      now = (await s.api.get('salary/sheet', {'period': period}))['lines'] as List;
+      expect(payStatus((now.cast<Map>().firstWhere((x) => x['employee_id'] == l['employee_id'])).cast<String, dynamic>()), 'paid');
+      final slip = await s.api.get('salary/payslip', {'period': period, 'employee_id': '${l['employee_id']}'});
+      expect((slip['payments'] as List).length, 2);
+      expect(nextPayableLine([for (final x in now) (x as Map).cast<String, dynamic>()], l['employee_id'] as int), isNotNull);
+    });
   });
 
   test('read-only subscription (second restaurant, no trial): reads work, writes get 402', () async {

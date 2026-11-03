@@ -5,7 +5,7 @@ import '../core/format.dart';
 import '../core/session.dart';
 import '../widgets/common.dart';
 
-const appVersion = '0.36.0';
+const appVersion = '0.38.0';
 
 /// Signed-in user, restaurant/branch, device session and sign-out.
 class ProfileScreen extends StatelessWidget {

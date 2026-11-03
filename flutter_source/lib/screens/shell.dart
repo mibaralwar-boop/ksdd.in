@@ -19,6 +19,7 @@ import 'staff.dart';
 import 'staff_extra.dart';
 import 'stock.dart';
 import 'suppliers.dart';
+import 'update.dart';
 
 class ModuleDef {
   const ModuleDef(this.label, this.labelHi, this.icon, this.group);
@@ -79,7 +80,8 @@ List<String> extraModules(Permissions p) => [
       if (p.can('staff.ledger') || p.can('stafftxn.create') || p.can('stafftxn.approve')) 'staff_payments',
       if (p.can('purchase.view')) 'purchase_bills',
       if (p.can('notifications.view')) 'notifications',
-      'subscription',
+      // Plan / billing details only for the owner or a user who manages users (never cashier / storekeeper).
+      if (p.template == 'owner' || p.can('users.manage') || p.can('settings.manage')) 'subscription',
       'profile',
     ];
 
@@ -124,9 +126,10 @@ String moduleLabel(BuildContext context, String key) =>
 /// Navigation is built ONLY from the server's effective permissions:
 /// one module → a single-module page (no bottom bar); otherwise up to four modules + "More".
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.session, required this.onLanguage});
+  const HomeShell({super.key, required this.session, required this.onLanguage, this.updates});
   final Session session;
   final VoidCallback onLanguage;
+  final UpdateController? updates;
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -201,6 +204,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       appBar: ShellBar(session: s, title: title, onLanguage: widget.onLanguage, open: _open),
       body: Column(children: [
         SubscriptionStrip(session: s),
+        if (widget.updates != null) OptionalUpdateBanner(controller: widget.updates!),
         Expanded(
           child: KeyedSubtree(
             key: ValueKey('$cur-${p.version}'),

@@ -1,0 +1,44 @@
+1/4 building disposable test databases with the backend's own platform suite…
+Converted 129 tables in 6.9s. Verification: 129 OK, 0 mismatch.
+MODE: V31 single database (mt_* base tables + scoped views + V34 guard)
+RESULT: 64 passed, 0 failed (64 tests)
+2/4 starting PHP server on 127.0.0.1:8099
+3/4 flutter test test/live
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+00:00 +0: loading /home/user/ksdd.in/flutter_source/test/live/live_api_test.dart
+00:00 +0: health is public
+00:00 +1: Cash Counter (Alpha Dhaba) (setUpAll)
+00:00 +1: Cash Counter (Alpha Dhaba) single membership opens directly; server menus = [closing] only
+00:00 +2: Cash Counter (Alpha Dhaba) hidden modules are refused by the server, not just hidden
+00:00 +3: Cash Counter (Alpha Dhaba) cannot open another restaurant (same 403 as non-existent)
+00:00 +4: Cash Counter (Alpha Dhaba) previous-day closing: sales → expenses → actual cash → FINAL without admin approval; retry is idempotent; day locks
+00:00 +5: Cash Counter (Alpha Dhaba) optional daybook photo: JPEG accepted after finalising; PDF refused
+00:00 +6: Cash Counter (Alpha Dhaba) (tearDownAll)
+00:00 +6: refresh token rotation: old refresh token replay revokes the session family
+00:00 +7: Owner (Khadak Singh Da Dhaba, adopted legacy data) (setUpAll)
+00:01 +7: Owner (Khadak Singh Da Dhaba, adopted legacy data) owner permissions include every module; dashboard reads real ledger
+00:01 +8: Owner (Khadak Singh Da Dhaba, adopted legacy data) salary: calendar-day divisor, server preview, save, stale version refused, Save & Next order
+00:01 +9: Owner (Khadak Singh Da Dhaba, adopted legacy data) supplier-first purchase: suggestion with last rate → changed rate needs confirmation → posted once
+00:02 +10: Owner (Khadak Singh Da Dhaba, adopted legacy data) (tearDownAll)
+00:02 +10: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) (setUpAll)
+00:02 +10: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Sales history: day rows add up to the period totals (integer paise)
+00:02 +11: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Cash book: closing = opening + every non-voided cash movement
+00:02 +12: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Cash handover: send → listed as sent → owner accepts once (second answer refused)
+00:02 +13: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Staff entries: unpaid overtime is recorded as unpaid; paid overtime needs a payment mode
+00:02 +14: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Supplier: payment lowers the balance exactly once (idempotent retry)
+00:03 +15: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Documents: photo upload goes to the private inbox and is listed
+00:03 +16: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) Notifications: list + per-user snooze; expenses period filter; subscription state
+00:03 +17: V36 native screens against the real backend (owner of Khadak Singh Da Dhaba) (tearDownAll)
+00:03 +17: Isolation: another restaurant's owner cannot read KSDD supplier, cash book rows or sales
+00:03 +18: Cash counter: Cash book, Accounts and Suppliers are refused by the server (403)
+00:04 +19: V38 salary + staff against the real backend (owner of Khadak Singh Da Dhaba) (setUpAll)
+00:04 +19: V38 salary + staff against the real backend (owner of Khadak Singh Da Dhaba) Add staff (duplicate code refused) → roster refresh puts the new joiner on the open month with eligible days
+00:04 +20: V38 salary + staff against the real backend (owner of Khadak Singh Da Dhaba) Mark left needs date + reason; the open month pays only the days up to the exit; record kept; rejoin restores
+00:05 +21: V38 salary + staff against the real backend (owner of Khadak Singh Da Dhaba) Full month: enter every line (present only, half/leave 0, advance 0) → submit → approve → part pay Cash → pay rest Online
+00:06 +22: V38 salary + staff against the real backend (owner of Khadak Singh Da Dhaba) (tearDownAll)
+00:06 +22: read-only subscription (second restaurant, no trial): reads work, writes get 402
+00:07 +23: All tests passed!
+4/4 done (server log: /tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/live4/server.log)
