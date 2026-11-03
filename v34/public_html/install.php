@@ -7,7 +7,8 @@ security_headers();
 if(!configured()){
     $dom=dirname(__DIR__); $rel=fn(string $p)=>ltrim(substr($p,strlen($dom)),'/');
     $misplaced=[];
-    foreach([__DIR__.'/ksdd_private/config.php',__DIR__.'/FINANCE360_V34/ksdd_private/config.php',$dom.'/FINANCE360_V34/ksdd_private/config.php',__DIR__.'/private/config.php',__DIR__.'/ksdd_private/config.example.php'] as $f) if(is_file($f)) $misplaced[]=$rel($f);
+    $cands=array_merge([__DIR__.'/FINANCE360_V34/ksdd_private/config.php',$dom.'/FINANCE360_V34/ksdd_private/config.php'],glob(__DIR__.'/*/config.php')?:[],glob($dom.'/*/config.php')?:[]); // e.g. public_html/ops/config.php (old dashboard folder)
+    foreach(array_unique($cands) as $f) if(is_file($f) && $f!==__DIR__.'/config.php' && $f!==$dom.'/ksdd_private/config.php' && str_contains((string)@file_get_contents($f,false,null,0,20000),'db_password')) $misplaced[]=$rel($f);
     $oldInstall=is_dir(__DIR__.'/private/uploads')||is_dir($dom.'/ksdd_private/uploads');
     http_response_code(503); header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Settings file not found</title>'
@@ -16,7 +17,7 @@ if(!configured()){
        .'<p>Put your existing <b>config.php</b> (database name, user, password, setup_key, pii_key) in <b>one</b> of these places:</p><ol>'
        .'<li><code>'.htmlspecialchars($rel($dom.'/ksdd_private/config.php')).'</code> — recommended: a folder <b>next to</b> public_html, not inside it</li>'
        .'<li><code>'.htmlspecialchars($rel(__DIR__.'/config.php')).'</code> — the old location (still accepted)</li></ol>'
-       .($misplaced?'<p style="background:#fff3cd;padding:10px;border-radius:8px">Found in the wrong place: <code>'.htmlspecialchars(implode('</code>, <code>',$misplaced)).'</code><br>Move <b>config.php</b> (not config.example.php) to the location in step 1 and delete the misplaced folder from public_html.</p>':'')
+       .($misplaced?'<p style="background:#fff3cd;padding:10px;border-radius:8px">Found in the wrong place: <code>'.htmlspecialchars(implode('</code>, <code>',$misplaced)).'</code><br><b>Copy</b> that config.php to the location in step 1 (keep the original until the site opens). Then reload this page.</p>':'')
        .'<p>No copy of your old config.php? Restore it from hPanel → Files → Backups (a backup from before the upload), or ask your developer to recreate it with the SAME setup_key and pii_key.</p>'
        .($oldInstall?'<p>Existing uploads were found, which confirms this is an existing installation.</p>':'').'</body>';
     exit;
