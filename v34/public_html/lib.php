@@ -31,6 +31,22 @@ function cfg(): array { static $c; if ($c !== null) return $c;
     $env = (string)getenv('F360_PRIVATE_DIR');
     foreach ([$env !== '' ? rtrim($env, '/').'/config.php' : '', dirname(__DIR__).'/ksdd_private/config.php', __DIR__.'/config.php'] as $f) if ($f !== '' && is_file($f)) return $c = require $f;
     return $c = []; }
+/** V34: plain-language reason why the database cannot be opened (no secrets). Full detail goes to the private log. */
+function db_unavailable_message(Throwable $e): string {
+    $code = $e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0; $msg = $e->getMessage();
+    if (!$code && preg_match('/\[(\d{4})\]/', $msg, $m)) $code = (int)$m[1];
+    $c = cfg(); $why = match (true) {
+        $code === 1045 => 'The database USER NAME or PASSWORD in config.php is not accepted by MySQL. In hPanel → Databases check the user of ' . ($c['db_name'] ?? '') . ' (or change its password) and put the same values in config.php.',
+        $code === 1044 => 'The database user in config.php has no access to the database ' . ($c['db_name'] ?? '') . '. In hPanel → Databases use the user that belongs to this database.',
+        $code === 1049 => 'The database NAME "' . ($c['db_name'] ?? '') . '" in config.php does not exist. Copy the exact name from hPanel → Databases (it starts with u245900320_).',
+        in_array($code, [2002, 2003, 2005, 2006], true) => 'The database server address in config.php is wrong or unreachable. On Hostinger use \'db_host\' => \'localhost\'.',
+        $code === 1146 && str_contains($msg, 'mt_') => "config.php has 'single_db' => true, but this database has not been converted. Set 'single_db' => false (and the platform 'enabled' => false).",
+        $code === 1146 => 'The database is reachable but Finance 360 tables are missing — config.php points at an empty or wrong database.',
+        default => 'The database could not be opened (error ' . ($code ?: get_class($e)) . ').',
+    };
+    try { $ld = private_root() . '/logs'; if (is_dir($ld) || @mkdir($ld, 0750, true)) @file_put_contents($ld . '/db-errors.log', gmdate('Y-m-d H:i:s') . ' startup ' . get_class($e) . ' ' . $code . ' ' . preg_replace('/\s+/', ' ', $msg) . "\n", FILE_APPEND); } catch (Throwable $x) {}
+    return $why;
+}
 /** V34: ONE resolver for private storage (uploads, backups, exports, imports, logs, platform files, clocks): the
  *  …/ksdd_private folder outside the web root when it exists (or config 'private_dir'); legacy public_html/private otherwise. */
 function private_root(): string {
@@ -99,7 +115,7 @@ function db(): PDO {
 function run(string $sql, mixed ...$args): PDOStatement { $s=db()->prepare($sql);$s->execute($args);return $s; }
 function rows(string $sql, mixed ...$args): array { return run($sql,...$args)->fetchAll(); }
 function row(string $sql, mixed ...$args): ?array { $r=run($sql,...$args)->fetch();return $r===false?null:$r; }
-function installed(): bool { try { return row("SELECT value FROM dd_settings WHERE `key`='installed'")!==null; } catch(PDOException $e){ if (($e->errorInfo[1]??0)===1146) return false; throw $e; } }
+function installed(): bool { try { return row("SELECT value FROM dd_settings WHERE `key`='installed'")!==null; } catch(PDOException $e){ if (($e->errorInfo[1]??0)===1146 && !str_contains($e->getMessage(),'mt_')) return false; throw $e; } } // V34: missing mt_* = single_db set on an unconverted database → report it, never offer a new install
 function fail(string $message,int $status=400): never { throw new RuntimeException($message,$status); }
 function send(array $data,int $status=200): never { http_response_code($status);header('Content-Type: application/json; charset=utf-8');echo json_encode($data,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit; }
 function security_headers(): void {

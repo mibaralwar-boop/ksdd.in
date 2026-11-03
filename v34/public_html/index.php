@@ -17,7 +17,7 @@ if (platform_mode()) {
 }
 if (!configured()) { header('Location: install.php'); exit; }
 try { if (!installed()) { header('Location: install.php'); exit; } }
-catch (Throwable $e) { http_response_code(503); exit('Database unavailable. Check config.php in Hostinger File Manager.'); }
+catch (Throwable $e) { http_response_code(503); header('Content-Type: text/plain; charset=utf-8'); exit('Database unavailable: ' . db_unavailable_message($e) . "\nYour data is not lost. Fix config.php in Hostinger File Manager, then reload."); }
 $v = '29.0.0';
 ?><!doctype html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1B1B1B"><meta name="robots" content="noindex">
