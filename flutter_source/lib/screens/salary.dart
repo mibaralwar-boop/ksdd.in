@@ -8,6 +8,7 @@ import '../core/api.dart';
 import '../core/format.dart';
 import '../core/session.dart';
 import '../widgets/common.dart';
+import 'staff_extra.dart';
 
 class SalaryScreen extends StatelessWidget {
   const SalaryScreen({super.key, required this.session});
@@ -43,7 +44,11 @@ class SalaryScreen extends StatelessWidget {
             OutlinedButton.icon(
               icon: const Icon(Icons.history),
               label: const Text('Old salary sheets (imported history)'),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SalaryHistoryScreen(api: session.api))),
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          Scaffold(appBar: AppBar(title: const Text('Old salary sheets')), body: SalaryHistoryScreen(session: session)))),
             ),
           ]);
         },
@@ -68,7 +73,8 @@ Map<String, dynamic>? nextPendingLine(List<Map<String, dynamic>> lines, int curr
   final cur = lines.indexWhere((l) => l['employee_id'] == currentEmployee);
   if (cur < 0) return null;
   final dept = lines[cur]['dept_id'];
-  bool open(Map<String, dynamic> l) => l['dept_id'] == dept && l['employee_id'] != currentEmployee && const ['pending', 'draft'].contains(l['entry_status']);
+  bool open(Map<String, dynamic> l) =>
+      l['dept_id'] == dept && l['employee_id'] != currentEmployee && const ['pending', 'draft'].contains(l['entry_status']);
   for (var i = cur + 1; i < lines.length; i++) {
     if (open(lines[i])) return lines[i];
   }
@@ -126,7 +132,11 @@ class _SalarySheetScreenState extends State<SalarySheetScreen> {
   List<Map<String, dynamic>> get lines => [for (final l in (sheet?['lines'] as List? ?? const [])) (l as Map).cast<String, dynamic>()];
 
   Future<void> _edit(Map<String, dynamic> line) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => SalaryLineScreen(session: widget.session, period: widget.period, employeeId: line['employee_id'] as int, sheetLines: lines)));
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => SalaryLineScreen(
+                session: widget.session, period: widget.period, employeeId: line['employee_id'] as int, sheetLines: lines)));
     await _load();
   }
 
@@ -166,9 +176,11 @@ class _SalarySheetScreenState extends State<SalarySheetScreen> {
                             onPressed: busy
                                 ? null
                                 : () async {
-                                    if (await confirmDialog(context, 'Approve salary', 'Approve ${_monthName(widget.period)}? Net total ${rupees((sheet!['totals'] as Map?)?['net'])}.',
+                                    if (await confirmDialog(context, 'Approve salary',
+                                        'Approve ${_monthName(widget.period)}? Net total ${rupees((sheet!['totals'] as Map?)?['net'])}.',
                                         ok: 'Approve')) {
-                                      await _post('salary/approve', {'period': widget.period, 'version': sheet!['version']}, 'Salary approved.');
+                                      await _post(
+                                          'salary/approve', {'period': widget.period, 'version': sheet!['version']}, 'Salary approved.');
                                     }
                                   },
                             child: const Text('Approve salary')),
@@ -220,7 +232,8 @@ class _SalarySheetScreenState extends State<SalarySheetScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text('${l['name']}'),
-                  subtitle: Text('${l['code'] ?? ''} · net ${rupees(l['net_payable'])}${l['saved_at'] != null ? ' · saved ${l['saved_at']}' : ''}'),
+                  subtitle: Text(
+                      '${l['code'] ?? ''} · net ${rupees(l['net_payable'])}${l['saved_at'] != null ? ' · saved ${l['saved_at']}' : ''}'),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     StatusChip(l['entry_status']?.toString()),
                     const SizedBox(width: 6),
@@ -359,7 +372,9 @@ class _SalaryLineScreenState extends State<SalaryLineScreen> {
       final l = (r['line'] as Map?)?.cast<String, dynamic>();
       if (l != null) {
         line = {...line!, ...l};
-        sheetLines = [for (final x in sheetLines) x['employee_id'] == emp ? {...x, ...l} : x];
+        sheetLines = [
+          for (final x in sheetLines) x['employee_id'] == emp ? {...x, ...l} : x
+        ];
       }
       if (r['calc'] != null) calc = (r['calc'] as Map).cast<String, dynamic>();
       setState(() {});
@@ -418,7 +433,7 @@ class _SalaryLineScreenState extends State<SalaryLineScreen> {
                     SumRow('Eligible days', '${ctx['eligible_days']}'),
                     SumRow('Advance outstanding', rupees(ctx['advance_outstanding'])),
                     SumRow('Overtime already paid (reference only)', rupees(ctx['ot_paid'])),
-                    if (l['joining_unverified'] == true) const Text('Joining date not verified.', style: TextStyle(color: Color(0xFFB26A00))),
+                    if (l['joining_unverified'] == true) const Text('Joining date not verified.', style: TextStyle(color: brandBurnt)),
                   ]),
                   SectionCard(title: 'Attendance & deductions', children: [
                     _row(NumberField(controller: present, label: '1 · Present days *', onChanged: (_) => _schedulePreview()),
@@ -438,7 +453,8 @@ class _SalaryLineScreenState extends State<SalaryLineScreen> {
                         onChanged: readOnly
                             ? null
                             : (v) {
-                                setState(() => v == true ? penalties.add((p['id'] as num).toInt()) : penalties.remove((p['id'] as num).toInt()));
+                                setState(
+                                    () => v == true ? penalties.add((p['id'] as num).toInt()) : penalties.remove((p['id'] as num).toInt()));
                                 _schedulePreview();
                               },
                         title: Text('${p['date']} · ${rupees(p['amount'])}'),
@@ -458,7 +474,7 @@ class _SalaryLineScreenState extends State<SalaryLineScreen> {
                       SumRow('Balance due', rupees(c['balance']), bold: true),
                     ],
                   ]),
-                  if (saveError != null) Banner2(saveError!, color: const Color(0xFFFDE2E1), icon: Icons.error_outline),
+                  if (saveError != null) Banner2(saveError!, color: brandRedBg, icon: Icons.error_outline),
                   if (l['saved_at'] != null) Text('Last saved ${l['saved_at']}', style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(height: 8),
                   if (!readOnly) ...[
@@ -483,51 +499,4 @@ class _SalaryLineScreenState extends State<SalaryLineScreen> {
   }
 
   Widget _row(Widget a, Widget b) => Row(children: [Expanded(child: a), const SizedBox(width: 12), Expanded(child: b)]);
-}
-
-class SalaryHistoryScreen extends StatelessWidget {
-  const SalaryHistoryScreen({super.key, required this.api, this.period});
-  final Api api;
-  final String? period;
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(period == null ? 'Old salary sheets' : _monthName(period!))),
-        body: Loader<Map<String, dynamic>>(
-          load: () => api.get('salary/history', {if (period != null) 'period': period!}),
-          builder: (context, d, _) {
-            final months = d['months'] as List? ?? const [];
-            final rows = d['rows'] as List? ?? const [];
-            return ListView(padding: const EdgeInsets.all(16), children: [
-              Banner2((d['note'] ?? 'Read-only record of imported salary sheets.').toString()),
-              if (period == null && months.isEmpty) const Text('No imported salary history yet.'),
-              if (period == null)
-                for (final m in months)
-                  ListTile(
-                    title: Text(_monthName((m as Map)['period'].toString())),
-                    subtitle: Text('${m['n']} rows · ${m['linked']} linked to staff · net ${rupees(m['net'])} · paid ${rupees(m['paid'])}'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SalaryHistoryScreen(api: api, period: m['period'].toString()))),
-                  ),
-              if (period != null)
-                for (final r in rows)
-                  Card(
-                    child: ListTile(
-                      title: Text('${(r as Map)['name'] ?? ''}${r['hr_code'] != null ? ' · ${r['hr_code']}' : ''}'),
-                      subtitle: Text([
-                        r['section'],
-                        r['designation'],
-                        if (r['present'] != null) 'present ${r['present']}',
-                        r['employee_id'] == null ? 'Not linked to a staff record (unverified)' : 'Linked: ${r['staff_name']}',
-                        r['pay_status'],
-                      ].whereType<Object>().join(' · ')),
-                      trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text(rupees(r['net_salary']), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        Text('bal ${rupees(r['balance'])}', style: const TextStyle(fontSize: 12)),
-                      ]),
-                    ),
-                  ),
-            ]);
-          },
-        ),
-      );
 }

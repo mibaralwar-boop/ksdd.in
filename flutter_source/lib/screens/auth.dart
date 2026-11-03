@@ -107,11 +107,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   validator: (v) => (v ?? '').isEmpty ? 'Enter your password' : null,
                   onFieldSubmitted: (_) => _submit(),
                 ),
-                if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: Color(0xFFB3261E)))),
+                if (_error != null)
+                  Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: brandRed))),
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: ok && !_busy ? _submit : null,
-                  child: _busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(tr(context, 'Sign in', 'साइन इन')),
+                  child: _busy
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(tr(context, 'Sign in', 'साइन इन')),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton(
@@ -149,7 +152,8 @@ class PlansScreen extends StatelessWidget {
                 SectionCard(title: (p as Map)['name']?.toString() ?? 'Plan', children: [
                   if (p['description'] != null) Text(p['description'].toString()),
                   for (final v in (p['terms'] as List? ?? const []))
-                    SumRow('${(v as Map)['term']} · up to ${v['max_branches']} branch(es), ${v['max_users']} users', rupees(v['price_paise'])),
+                    SumRow(
+                        '${(v as Map)['term']} · up to ${v['max_branches']} branch(es), ${v['max_users']} users', rupees(v['price_paise'])),
                 ]),
             ]);
           },
@@ -169,7 +173,19 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _form = GlobalKey<FormState>();
   final c = {
-    for (final k in ['owner_name', 'mobile', 'email', 'password', 'restaurant', 'contact_phone', 'address', 'city', 'state', 'pincode', 'branch_name'])
+    for (final k in [
+      'owner_name',
+      'mobile',
+      'email',
+      'password',
+      'restaurant',
+      'contact_phone',
+      'address',
+      'city',
+      'state',
+      'pincode',
+      'branch_name'
+    ])
       k: TextEditingController(),
   };
   int _cutoff = 4;
@@ -232,8 +248,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
             Text(_done!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            const Text('Your 30-day free trial starts when the restaurant is created after verification. '
-                'Mobile number is stored unverified until an OTP service is connected.', textAlign: TextAlign.center),
+            const Text(
+                'Your 30-day free trial starts when the restaurant is created after verification. '
+                'Mobile number is stored unverified until an OTP service is connected.',
+                textAlign: TextAlign.center),
             const SizedBox(height: 24),
             FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Back to sign in')),
           ]),
@@ -248,10 +266,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Text('Owner', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           _f('owner_name', 'Full name', req: true),
-          _f('mobile', 'Mobile (10 digits)', type: TextInputType.phone, req: true,
+          _f('mobile', 'Mobile (10 digits)',
+              type: TextInputType.phone,
+              req: true,
               check: (t) => RegExp(r'^[6-9]\d{9}$').hasMatch(t) ? null : 'Enter a 10-digit Indian mobile'),
           _f('email', 'Email', type: TextInputType.emailAddress, req: true, check: (t) => t.contains('@') ? null : 'Enter a valid email'),
-          _f('password', 'Password (min 10 characters)', obscure: true, req: true, check: (t) => t.length >= 10 ? null : 'At least 10 characters'),
+          _f('password', 'Password (min 10 characters)',
+              obscure: true, req: true, check: (t) => t.length >= 10 ? null : 'At least 10 characters'),
           Text('Restaurant', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           _f('restaurant', 'Restaurant name', req: true),

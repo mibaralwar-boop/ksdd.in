@@ -52,8 +52,7 @@ class SecureSessionStore implements SessionStore {
   }
 
   @override
-  Future<void> write(String key, String? value) =>
-      value == null ? _s.delete(key: 'f360.$key') : _s.write(key: 'f360.$key', value: value);
+  Future<void> write(String key, String? value) => value == null ? _s.delete(key: 'f360.$key') : _s.write(key: 'f360.$key', value: value);
 }
 
 class MemorySessionStore implements SessionStore {
@@ -61,8 +60,7 @@ class MemorySessionStore implements SessionStore {
   @override
   Future<Map<String, String>> readAll() async => Map.of(values);
   @override
-  Future<void> write(String key, String? value) async =>
-      value == null ? values.remove(key) : values[key] = value;
+  Future<void> write(String key, String? value) async => value == null ? values.remove(key) : values[key] = value;
 }
 
 String randomKey([int bytes = 16]) {
@@ -93,9 +91,7 @@ class Api {
   bool get configured =>
       base.host.isNotEmpty &&
       (base.scheme == 'https' ||
-          (allowInsecureLoopback &&
-              base.scheme == 'http' &&
-              const ['localhost', '127.0.0.1', '10.0.2.2'].contains(base.host)));
+          (allowInsecureLoopback && base.scheme == 'http' && const ['localhost', '127.0.0.1', '10.0.2.2'].contains(base.host)));
   bool get hasSession => _access != null && _refresh != null;
   String get deviceId => _deviceId ?? '';
 
@@ -124,14 +120,12 @@ class Api {
     await store.write('refresh', null);
   }
 
-  Uri url(String path, [Map<String, String>? query]) =>
-      base.replace(queryParameters: {...base.queryParameters, '__path': path, ...?query});
+  Uri url(String path, [Map<String, String>? query]) => base.replace(queryParameters: {...base.queryParameters, '__path': path, ...?query});
 
   // ---------------------------------------------------------------- auth
   Future<Map<String, dynamic>> login(String email, String password) async {
     final r = await _send('POST', 'auth/login',
-        body: {'email': email.trim(), 'password': password, 'device_id': deviceId, 'device_name': 'Android app'},
-        auth: false);
+        body: {'email': email.trim(), 'password': password, 'device_id': deviceId, 'device_name': 'Android app'}, auth: false);
     await _saveTokens(r);
     return r;
   }
@@ -197,8 +191,7 @@ class Api {
   }
 
   Future<Map<String, dynamic>> publicGet(String path) => _send('GET', path, auth: false);
-  Future<Map<String, dynamic>> publicPost(String path, Map<String, dynamic> body) =>
-      _send('POST', path, body: body, auth: false);
+  Future<Map<String, dynamic>> publicPost(String path, Map<String, dynamic> body) => _send('POST', path, body: body, auth: false);
 
   Future<Map<String, dynamic>> _send(String method, String path,
       {Map<String, String>? query, Map<String, dynamic>? body, bool auth = true, String? idem}) async {

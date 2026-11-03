@@ -106,8 +106,7 @@ class Session extends ChangeNotifier {
     }
   }
 
-  static List<Map<String, dynamic>> _list(Object? v) =>
-      [for (final x in (v as List? ?? const [])) (x as Map).cast<String, dynamic>()];
+  static List<Map<String, dynamic>> _list(Object? v) => [for (final x in (v as List? ?? const [])) (x as Map).cast<String, dynamic>()];
 
   Future<void> login(String email, String password) async {
     final r = await api.login(email, password);

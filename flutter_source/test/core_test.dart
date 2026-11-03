@@ -66,13 +66,21 @@ void main() {
   });
 
   group('API client', () {
-    Api make(FakeServer s) => Api(base: Uri.parse('https://x.example.test/api/v1/index.php'), store: MemorySessionStore(), client: s.client);
+    Api make(FakeServer s) =>
+        Api(base: Uri.parse('https://x.example.test/api/v1/index.php'), store: MemorySessionStore(), client: s.client);
 
     test('refuses plain HTTP unless loopback is explicitly allowed', () {
       final s = FakeServer();
-      expect(Api(base: Uri.parse('http://example.com/api/v1/index.php'), store: MemorySessionStore(), client: s.client).configured, isFalse);
+      expect(
+          Api(base: Uri.parse('http://example.com/api/v1/index.php'), store: MemorySessionStore(), client: s.client).configured, isFalse);
       expect(Api(base: Uri.parse('http://10.0.2.2/api/v1/index.php'), store: MemorySessionStore(), client: s.client).configured, isFalse);
-      expect(Api(base: Uri.parse('http://10.0.2.2/api/v1/index.php'), store: MemorySessionStore(), client: s.client, allowInsecureLoopback: true).configured,
+      expect(
+          Api(
+                  base: Uri.parse('http://10.0.2.2/api/v1/index.php'),
+                  store: MemorySessionStore(),
+                  client: s.client,
+                  allowInsecureLoopback: true)
+              .configured,
           isTrue);
       expect(Api(base: Uri(), store: MemorySessionStore(), client: s.client).configured, isFalse);
     });
@@ -100,7 +108,11 @@ void main() {
         refreshes++;
         return (200, {'access_token': 'N' * 40, 'refresh_token': 'M' * 40});
       });
-      s.on('GET dashboard', (req, b) => req.headers['Authorization'] == 'Bearer ${'N' * 40}' ? (200, {'ok': true}) : (401, {'error': 'expired', 'code': 'UNAUTHENTICATED'}));
+      s.on(
+          'GET dashboard',
+          (req, b) => req.headers['Authorization'] == 'Bearer ${'N' * 40}'
+              ? (200, {'ok': true})
+              : (401, {'error': 'expired', 'code': 'UNAUTHENTICATED'}));
       final api = make(s);
       await api.restore();
       await api.login('a@b.test', 'pw');
@@ -153,7 +165,11 @@ void main() {
     final (session, server) = await signedInSession('select_owner');
     expect(session.inBranch, isTrue);
     server.json('GET permissions/me', {'error': 'Not allowed', 'code': 'FORBIDDEN'}, 403);
-    server.json('GET auth/profile', {'user': {'id': 1}, 'memberships': [], 'selected': {}});
+    server.json('GET auth/profile', {
+      'user': {'id': 1},
+      'memberships': [],
+      'selected': {}
+    });
     await session.reloadPermissions();
     expect(session.inBranch, isFalse);
     expect(session.memberships, isEmpty);

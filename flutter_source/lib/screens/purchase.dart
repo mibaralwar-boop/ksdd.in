@@ -44,7 +44,7 @@ class PurchaseScreen extends StatelessWidget {
               child: ListTile(
                 title: Text('${(b as Map)['supplier']} · ${b['invoice_no'] ?? b['bill_no']}'),
                 subtitle: Text('${b['invoice_date']} · ${b['n_lines']} item(s) · ${b['receipt_status']}'),
-                trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                trailing: TrailingStack(children: [
                   Text(rupees(b['grand_total']), style: const TextStyle(fontWeight: FontWeight.w600)),
                   StatusChip((b['payment_status'] ?? b['status'])?.toString()),
                 ]),
@@ -105,8 +105,8 @@ class _BillEditorState extends State<BillEditor> {
   int get grand => lines.fold(0, (a, l) => a + l.total);
 
   Future<void> _pickSupplier() async {
-    final picked = await Navigator.push<Map<String, dynamic>>(
-        context, MaterialPageRoute(builder: (_) => PickerScreen(api: api, path: 'suppliers', listKey: 'suppliers', title: 'Choose supplier')));
+    final picked = await Navigator.push<Map<String, dynamic>>(context,
+        MaterialPageRoute(builder: (_) => PickerScreen(api: api, path: 'suppliers', listKey: 'suppliers', title: 'Choose supplier')));
     if (picked == null) return;
     setState(() {
       supplier = picked;
@@ -137,7 +137,8 @@ class _BillEditorState extends State<BillEditor> {
     final it = await Navigator.push<Map<String, dynamic>>(
         context, MaterialPageRoute(builder: (_) => PickerScreen(api: api, path: 'items', listKey: 'items', title: 'Add item')));
     if (it == null) return;
-    setState(() => lines.add(BillLine(itemId: (it['id'] as num).toInt(), name: it['name'].toString(), unit: (it['unit'] ?? '').toString())));
+    setState(
+        () => lines.add(BillLine(itemId: (it['id'] as num).toInt(), name: it['name'].toString(), unit: (it['unit'] ?? '').toString())));
   }
 
   Future<void> _photo(ImageSource src) async {
@@ -174,7 +175,8 @@ class _BillEditorState extends State<BillEditor> {
       'invoice_date': invoiceDate.text.trim(),
       'location': 'Main Store',
       'lines': [
-        for (final l in f) {if (l.id != null) 'id': l.id, 'item_id': l.itemId, 'unit': l.unit, 'qty': l.qty.text.trim(), 'rate': l.rate.text.trim()},
+        for (final l in f)
+          {if (l.id != null) 'id': l.id, 'item_id': l.itemId, 'unit': l.unit, 'qty': l.qty.text.trim(), 'rate': l.rate.text.trim()},
       ],
       if (photos.isNotEmpty) 'files_add': photos,
     };
@@ -210,7 +212,8 @@ class _BillEditorState extends State<BillEditor> {
     try {
       if (extra.isEmpty && !await _saveDraft()) return;
       _submitKey ??= randomKey();
-      final suffix = '${extra.containsKey('rates_ok') ? 'r' : ''}${extra.containsKey('dup_reason') ? 'd' : ''}${extra.containsKey('over_limit_ok') ? 'o' : ''}';
+      final suffix =
+          '${extra.containsKey('rates_ok') ? 'r' : ''}${extra.containsKey('dup_reason') ? 'd' : ''}${extra.containsKey('over_limit_ok') ? 'o' : ''}';
       final r = await api.post(
           'purchase-bills/submit',
           {
@@ -239,10 +242,12 @@ class _BillEditorState extends State<BillEditor> {
       if (!mounted) return;
       if (e.isConflict && e.needs == 'rates_ok') {
         final rows = (e.data['rate_changes'] as List? ?? const [])
-            .map((x) => '${(x as Map)['item']}: ${rupees(x['previous_per_stock_unit'])} → ${rupees(x['new_per_stock_unit'])} per ${x['stock_unit'] ?? 'unit'}'
+            .map((x) =>
+                '${(x as Map)['item']}: ${rupees(x['previous_per_stock_unit'])} → ${rupees(x['new_per_stock_unit'])} per ${x['stock_unit'] ?? 'unit'}'
                 '${x['change_pct'] != null ? ' (${(x['change_pct'] as num) > 0 ? '+' : ''}${x['change_pct']}%)' : ''}\nlast bill ${x['previous_date'] ?? ''}')
             .join('\n\n');
-        if (await confirmDialog(context, 'Rate changed', '$rows\n\nSave these as the latest supplier prices?', ok: 'Yes, rates are correct')) {
+        if (await confirmDialog(context, 'Rate changed', '$rows\n\nSave these as the latest supplier prices?',
+            ok: 'Yes, rates are correct')) {
           setState(() => busy = false);
           return _submit({...extra, 'rates_ok': 1});
         }
@@ -282,9 +287,12 @@ class _BillEditorState extends State<BillEditor> {
           ),
           if (sg != null) ...[
             const SizedBox(height: 8),
-            SumRow((sg['balance'] as num? ?? 0) >= 0 ? 'You owe this supplier' : 'Advance with supplier', rupees((sg['balance'] as num? ?? 0).abs()), bold: true),
+            SumRow((sg['balance'] as num? ?? 0) >= 0 ? 'You owe this supplier' : 'Advance with supplier',
+                rupees((sg['balance'] as num? ?? 0).abs()),
+                bold: true),
             if (sg['last_bill'] != null)
-              SumRow('Last bill ${(sg['last_bill'] as Map)['invoice_no'] ?? ''} · ${sg['last_bill']['date']}', rupees(sg['last_bill']['total'])),
+              SumRow('Last bill ${(sg['last_bill'] as Map)['invoice_no'] ?? ''} · ${sg['last_bill']['date']}',
+                  rupees(sg['last_bill']['total'])),
           ],
         ]),
         if (supplier != null) ...[
@@ -296,7 +304,8 @@ class _BillEditorState extends State<BillEditor> {
           SectionCard(title: '3 · Items', children: [
             if (lines.isEmpty) const Text('No previous items for this supplier. Add items below.'),
             if (lines.isNotEmpty && sg != null && (sg['suggested_items'] as List? ?? const []).isNotEmpty)
-              const Text('Suggested from this supplier’s last deliveries. Fill only the quantity; leave empty to skip.', style: TextStyle(fontSize: 12)),
+              const Text('Suggested from this supplier’s last deliveries. Fill only the quantity; leave empty to skip.',
+                  style: TextStyle(fontSize: 12)),
             for (final l in lines) _lineTile(l),
             TextButton.icon(onPressed: _addItem, icon: const Icon(Icons.add), label: const Text('Add item')),
             const Divider(),
@@ -305,9 +314,13 @@ class _BillEditorState extends State<BillEditor> {
           SectionCard(title: '4 · Bill photo (optional)', children: [
             Text(photos.isEmpty ? 'No new photo.' : '${photos.length} photo(s) will be attached on save.'),
             Row(children: [
-              Expanded(child: OutlinedButton.icon(onPressed: () => _photo(ImageSource.camera), icon: const Icon(Icons.photo_camera), label: const Text('Camera'))),
+              Expanded(
+                  child: OutlinedButton.icon(
+                      onPressed: () => _photo(ImageSource.camera), icon: const Icon(Icons.photo_camera), label: const Text('Camera'))),
               const SizedBox(width: 8),
-              Expanded(child: OutlinedButton.icon(onPressed: () => _photo(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: const Text('Gallery'))),
+              Expanded(
+                  child: OutlinedButton.icon(
+                      onPressed: () => _photo(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: const Text('Gallery'))),
             ]),
           ]),
           if (perms.can('supplier.pay'))
@@ -347,10 +360,10 @@ class _BillEditorState extends State<BillEditor> {
             Expanded(child: Text(l.name, style: const TextStyle(fontWeight: FontWeight.w600))),
             IconButton(tooltip: 'Remove', onPressed: () => setState(() => lines.remove(l)), icon: const Icon(Icons.close)),
           ]),
-          if (l.lastRate != null)
-            Text('Last: ${l.lastQty ?? ''} ${l.unit} @ ${rupees(l.lastRate)}', style: const TextStyle(fontSize: 12)),
+          if (l.lastRate != null) Text('Last: ${l.lastQty ?? ''} ${l.unit} @ ${rupees(l.lastRate)}', style: const TextStyle(fontSize: 12)),
           for (final o in l.otherSuppliers.take(3))
-            Text('Other: ${(o as Map)['supplier'] ?? o['name'] ?? ''} ${rupees(o['rate'] ?? o['last_rate'])}/${o['unit'] ?? l.unit}', style: const TextStyle(fontSize: 12)),
+            Text('Other: ${(o as Map)['supplier'] ?? o['name'] ?? ''} ${rupees(o['rate'] ?? o['last_rate'])}/${o['unit'] ?? l.unit}',
+                style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 6),
           Row(children: [
             Expanded(child: NumberField(controller: l.qty, label: 'Qty (${l.unit})', onChanged: (_) => setState(() {}))),
@@ -361,7 +374,7 @@ class _BillEditorState extends State<BillEditor> {
             Text(
               'Old ${rupees(l.lastRate)} → New ${rupees(parseRupees(l.rate.text))} '
               '(${((parseRupees(l.rate.text)! - l.lastRate!) * 100 / (l.lastRate == 0 ? 1 : l.lastRate!)).toStringAsFixed(1)}%)',
-              style: const TextStyle(color: Color(0xFFB26A00), fontSize: 12),
+              style: const TextStyle(color: brandBurnt, fontSize: 12),
             ),
           Align(alignment: Alignment.centerRight, child: Text('= ${rupees(l.total)}')),
         ]),

@@ -44,7 +44,11 @@ void main() {
     late Session s;
     await t.runAsync(() async {
       (s, _) = await signedInSession('select_store', routes: (srv) {
-        srv.json('GET purchase-bills', {'bills': [], 'month': {'count': 0, 'total': 0}, 'counts': {}});
+        srv.json('GET purchase-bills', {
+          'bills': [],
+          'month': {'count': 0, 'total': 0},
+          'counts': {}
+        });
       });
     });
     await pumpApp(t, s);
@@ -62,6 +66,9 @@ void main() {
     });
     await pumpApp(t, s);
     expect(find.descendant(of: find.byType(NavigationBar), matching: find.text('More')), findsOneWidget);
+    // V36 home: orange hero + metric tiles first; the closing card is further down the list.
+    expect(find.text('Total sale · this month so far'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Cash in hand (books)'), 300, scrollable: find.byType(Scrollable).first);
     expect(find.text('Cash in hand (books)'), findsOneWidget);
     expect(find.text('₹5,74,650'), findsWidgets); // cash_in_hand 57465000 paise from the server
     s.dispose();
@@ -70,10 +77,12 @@ void main() {
   testWidgets('Expired subscription: read-only banner, records still shown', (t) async {
     late Session s;
     await t.runAsync(() async {
-      (s, _) = await signedInSession('select_cash_counter', overridePerms: {
-        'read_only': true,
-        'subscription': {'state': 'expired', 'label': 'Expired', 'read_only': true},
-      }, routes: (srv) => srv.json('GET closing', fixture('closing')));
+      (s, _) = await signedInSession('select_cash_counter',
+          overridePerms: {
+            'read_only': true,
+            'subscription': {'state': 'expired', 'label': 'Expired', 'read_only': true},
+          },
+          routes: (srv) => srv.json('GET closing', fixture('closing')));
     });
     await pumpApp(t, s);
     expect(find.textContaining('read-only'), findsOneWidget);
@@ -90,20 +99,32 @@ void main() {
         x.json('GET closing', base);
         x.on('POST closing/save', (req, b) {
           final step = b['step'] as int;
-          return (200, {
-            ...base,
-            'version': (b['version'] as int) + 1,
-            'step': step,
-            'status': 'draft',
-            'sales': {'cash': 3000000, 'card': 500000, 'upi': 700000, 'total': 4200000},
-            'expenses_confirmed': step >= 5 ? 'none' : null,
-            'actual_cash': step >= 6 ? 3000000 : null,
-          });
+          return (
+            200,
+            {
+              ...base,
+              'version': (b['version'] as int) + 1,
+              'step': step,
+              'status': 'draft',
+              'sales': {'cash': 3000000, 'card': 500000, 'upi': 700000, 'total': 4200000},
+              'expenses_confirmed': step >= 5 ? 'none' : null,
+              'actual_cash': step >= 6 ? 3000000 : null,
+            }
+          );
         });
         x.on('POST closing/finalize', (req, b) {
           finalizeCalls++;
           if (finalizeCalls == 1) throw Exception('connection reset'); // reply lost
-          return (200, {'ok': true, 'final': true, 'date': base['date'], 'message': 'Closing is final.', 'summary': {'cash': 3000000, 'card': 500000, 'upi': 700000, 'total_sale': 4200000, 'expenses': 0, 'actual_cash': 3000000}});
+          return (
+            200,
+            {
+              'ok': true,
+              'final': true,
+              'date': base['date'],
+              'message': 'Closing is final.',
+              'summary': {'cash': 3000000, 'card': 500000, 'upi': 700000, 'total_sale': 4200000, 'expenses': 0, 'actual_cash': 3000000}
+            }
+          );
         });
         x.json('GET closing/photos', {'date': base['date'], 'photos': [], 'max': 6});
       });
@@ -175,17 +196,47 @@ void main() {
         });
         x.on('POST salary/drafts', (req, b) {
           if (b['action'] == 'preview') {
-            return (200, {'ok': true, 'calc': {'payable_days': 29, 'absent': 1, 'gross_earned': 2338710, 'advance_recovery': 0, 'penalties': 0, 'net_payable': 2338710, 'carried_forward': 0, 'paid': 0, 'balance': 2338710}});
+            return (
+              200,
+              {
+                'ok': true,
+                'calc': {
+                  'payable_days': 29,
+                  'absent': 1,
+                  'gross_earned': 2338710,
+                  'advance_recovery': 0,
+                  'penalties': 0,
+                  'net_payable': 2338710,
+                  'carried_forward': 0,
+                  'paid': 0,
+                  'balance': 2338710
+                }
+              }
+            );
           }
-          return (200, {'ok': true, 'line': {'employee_id': b['employee_id'], 'entry_status': 'completed', 'version': 2, 'saved_at': '2026-11-02 18:30:00'}, 'calc': {'net_payable': 2338710}});
+          return (
+            200,
+            {
+              'ok': true,
+              'line': {'employee_id': b['employee_id'], 'entry_status': 'completed', 'version': 2, 'saved_at': '2026-11-02 18:30:00'},
+              'calc': {'net_payable': 2338710}
+            }
+          );
         });
       });
     });
     await pumpApp(t, s);
-    await t.pumpWidget(MaterialApp(home: SalaryLineScreen(session: s, period: '2026-10', employeeId: first['employee_id'] as int, sheetLines: lines)));
+    await t.pumpWidget(
+        MaterialApp(home: SalaryLineScreen(session: s, period: '2026-10', employeeId: first['employee_id'] as int, sheetLines: lines)));
     await t.pumpAndSettle();
     expect(find.text('${first['name']}'), findsOneWidget);
-    for (final label in ['1 · Present days *', '2 · Absent days (auto if empty)', '3 · Half days', '4 · Paid leave days', '5 · Advance recovery']) {
+    for (final label in [
+      '1 · Present days *',
+      '2 · Absent days (auto if empty)',
+      '3 · Half days',
+      '4 · Paid leave days',
+      '5 · Advance recovery'
+    ]) {
       expect(find.widgetWithText(TextFormField, label), findsOneWidget);
     }
     expect(find.text('6 · Approved penalty deduction'), findsOneWidget);
@@ -214,20 +265,43 @@ void main() {
       (s, srv) = await signedInSession('select_owner', routes: (x) {
         x.json('GET suppliers', fixture('suppliers'));
         x.json('GET suppliers/suggest', fixture('suggest'));
-        x.json('POST purchase-bills', {'ok': true, 'bill': {'id': 7, 'version': 1}, 'lines': [{'id': 70}]});
+        x.json('POST purchase-bills', {
+          'ok': true,
+          'bill': {'id': 7, 'version': 1},
+          'lines': [
+            {'id': 70}
+          ]
+        });
         x.on('POST purchase-bills/submit', (req, b) {
           submits++;
           if (b['rates_ok'] != 1) {
-            return (409, {
-              'error': 'Rates changed',
-              'code': 'CONFLICT',
-              'needs': 'rates_ok',
-              'rate_changes': [
-                {'item': 'DEMO Onion', 'previous_per_stock_unit': 3200, 'new_per_stock_unit': 4000, 'stock_unit': 'kg', 'change_pct': 25, 'previous_date': '2026-11-01'}
-              ]
-            });
+            return (
+              409,
+              {
+                'error': 'Rates changed',
+                'code': 'CONFLICT',
+                'needs': 'rates_ok',
+                'rate_changes': [
+                  {
+                    'item': 'DEMO Onion',
+                    'previous_per_stock_unit': 3200,
+                    'new_per_stock_unit': 4000,
+                    'stock_unit': 'kg',
+                    'change_pct': 25,
+                    'previous_date': '2026-11-01'
+                  }
+                ]
+              }
+            );
           }
-          return (200, {'ok': true, 'status': 'posted', 'receipt': {'receipt_no': 'GR00009'}});
+          return (
+            200,
+            {
+              'ok': true,
+              'status': 'posted',
+              'receipt': {'receipt_no': 'GR00009'}
+            }
+          );
         });
       });
     });

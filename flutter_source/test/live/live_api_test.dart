@@ -66,18 +66,22 @@ void main() {
       var c = await s.api.get('closing');
       final date = c['date'] as String;
       expect(c['locked'], isFalse, reason: 'fixture day must be open');
-      c = await s.api.post('closing/save', {'date': date, 'version': c['version'], 'step': 4, 'cash_sale': '25000', 'card_sale': '3000', 'upi_sale': '4000.50'});
+      c = await s.api.post('closing/save',
+          {'date': date, 'version': c['version'], 'step': 4, 'cash_sale': '25000', 'card_sale': '3000', 'upi_sale': '4000.50'});
       expect((c['sales'] as Map)['total'], 3200050);
       // The server refuses "No expenses" when expenses exist for the day; the user must review them instead.
       final hasExpenses = (c['expenses'] as List).isNotEmpty;
       if (hasExpenses) {
         final bad = await s.api.post('closing/save', {'date': date, 'version': c['version'], 'step': 5, 'expenses_confirmed': 'none'});
-        await expectLater(s.api.post('closing/finalize', {'date': date, 'version': bad['version'], 'confirm': true}), throwsA(isA<ApiError>()));
+        await expectLater(
+            s.api.post('closing/finalize', {'date': date, 'version': bad['version'], 'confirm': true}), throwsA(isA<ApiError>()));
         c = bad;
       }
-      c = await s.api.post('closing/save', {'date': date, 'version': c['version'], 'step': 5, 'expenses_confirmed': hasExpenses ? 'reviewed' : 'none'});
+      c = await s.api.post(
+          'closing/save', {'date': date, 'version': c['version'], 'step': 5, 'expenses_confirmed': hasExpenses ? 'reviewed' : 'none'});
       // Wrong version → 409, nothing overwritten
-      await expectLater(s.api.post('closing/save', {'date': date, 'version': (c['version'] as int) - 1, 'step': 6, 'actual_cash': '1'}), apiError(409));
+      await expectLater(
+          s.api.post('closing/save', {'date': date, 'version': (c['version'] as int) - 1, 'step': 6, 'actual_cash': '1'}), apiError(409));
       c = await s.api.post('closing/save', {
         'date': date,
         'version': c['version'],
@@ -94,7 +98,8 @@ void main() {
       expect(after['locked'], isTrue);
       expect(after['status'], 'approved');
       await expectLater(
-          s.api.post('closing/save', {'date': date, 'version': after['version'], 'step': 4, 'cash_sale': '1', 'card_sale': '0', 'upi_sale': '0'}),
+          s.api.post(
+              'closing/save', {'date': date, 'version': after['version'], 'step': 4, 'cash_sale': '1', 'card_sale': '0', 'upi_sale': '0'}),
           throwsA(isA<ApiError>()));
     });
 
@@ -102,11 +107,17 @@ void main() {
       final c = await s.api.get('closing', {'date': s.permissions!.closingTargetDate});
       final date = c['date'] as String;
       final bytes = File(jpegPath!).readAsBytesSync();
-      await s.api.post('closing/photos', {'date': date, 'file': {'name': 'daybook.jpg', 'data': base64Encode(bytes)}});
+      await s.api.post('closing/photos', {
+        'date': date,
+        'file': {'name': 'daybook.jpg', 'data': base64Encode(bytes)}
+      });
       final list = await s.api.get('closing/photos', {'date': date});
       expect((list['photos'] as List).length, 1);
       await expectLater(
-          s.api.post('closing/photos', {'date': date, 'file': {'name': 'x.pdf', 'data': base64Encode(utf8.encode('%PDF-1.4 fake'))}}),
+          s.api.post('closing/photos', {
+            'date': date,
+            'file': {'name': 'x.pdf', 'data': base64Encode(utf8.encode('%PDF-1.4 fake'))}
+          }),
           throwsA(isA<ApiError>()));
     });
   });
@@ -147,7 +158,17 @@ void main() {
       final emp = first['employee_id'] as int;
       final line = await s.api.get('salary/drafts', {'period': period, 'employee_id': '$emp'});
       final monthly = (line['context'] as Map)['monthly'] as int;
-      final body = {'period': period, 'employee_id': emp, 'version': line['version'], 'present': '28', 'half_days': '2', 'paid_leave': '', 'rest_days': '', 'advance_recovery': '0', 'penalty_ids': <int>[]};
+      final body = {
+        'period': period,
+        'employee_id': emp,
+        'version': line['version'],
+        'present': '28',
+        'half_days': '2',
+        'paid_leave': '',
+        'rest_days': '',
+        'advance_recovery': '0',
+        'penalty_ids': <int>[]
+      };
       final pv = await s.api.post('salary/drafts', {...body, 'action': 'preview'});
       final calc = pv['calc'] as Map;
       expect(calc['divisor'], 31);
@@ -203,6 +224,139 @@ void main() {
     });
   });
 
+  group('V36 native screens against the real backend (owner of Khadak Singh Da Dhaba)', () {
+    late Session s;
+    setUpAll(() async => s = await signIn('owner@staging.test', 'OwnerPass#2026', tenant: 1, branch: 1));
+    tearDownAll(() => s.dispose());
+
+    test('Sales history: day rows add up to the period totals (integer paise)', () async {
+      final bd = DateTime.parse(s.permissions!.businessDate);
+      final from = bd.subtract(const Duration(days: 60)).toIso8601String().substring(0, 10);
+      final r = await s.api.get('sales', {'from': from, 'to': s.permissions!.businessDate});
+      final days = (r['days'] as List).cast<Map>();
+      expect(days, isNotEmpty);
+      final t = r['totals'] as Map;
+      for (final k in ['cash', 'card', 'upi', 'total']) {
+        expect(days.fold<int>(0, (a, d) => a + (d[k] as int)), t[k], reason: k);
+      }
+    });
+
+    test('Cash book: closing = opening + every non-voided cash movement', () async {
+      final bd = DateTime.parse(s.permissions!.businessDate);
+      final from = bd.subtract(const Duration(days: 45)).toIso8601String().substring(0, 10);
+      final r = await s.api.get('cashbook', {'from': from, 'to': s.permissions!.businessDate});
+      final moves = (r['txns'] as List).cast<Map>().where((x) => x['voided'] == 0).fold<int>(0, (a, x) => a + (x['cash'] as int));
+      expect(r['closing'], (r['opening'] as int) + moves);
+      final acc = await s.api.get('accounts');
+      final cash = (acc['accounts'] as List).cast<Map>().firstWhere((a) => a['account'] == r['account']);
+      expect(cash['balance'], r['closing'], reason: 'account balance equals the book closing when the period ends today');
+    });
+
+    test('Cash handover: send → listed as sent → owner accepts once (second answer refused)', () async {
+      final h = await s.api.get('handover');
+      final to = ((h['receivers'] as List).first as Map)['id'];
+      final key = randomKey();
+      final sent = await s.api.post(
+          'handover', {'to_user': to, 'amount': '125.50', 'from_account': h['cash_account'], 'note': 'live test', 'client_key': key},
+          idem: key);
+      final id = (sent['handover'] as Map)['id'];
+      expect((sent['handover'] as Map)['amount'], 12550);
+      final again = await s.api.post(
+          'handover', {'to_user': to, 'amount': '125.50', 'from_account': h['cash_account'], 'note': 'live test', 'client_key': key},
+          idem: key);
+      expect(again['duplicate'], isTrue, reason: 'same client key never creates a second handover');
+      await s.api.post('handover/respond', {'id': id, 'act': 'accept'});
+      await expectLater(s.api.post('handover/respond', {'id': id, 'act': 'accept'}), apiError(409));
+      final rows = ((await s.api.get('handover'))['rows'] as List).cast<Map>();
+      expect(rows.firstWhere((r) => r['id'] == id)['status'], 'accepted');
+    });
+
+    test('Staff entries: unpaid overtime is recorded as unpaid; paid overtime needs a payment mode', () async {
+      final emp = (((await s.api.get('employees'))['staff'] as List).first as Map)['id'];
+      final k = randomKey();
+      final r = await s.api.post('overtime',
+          {'kind': 'overtime', 'employee_id': emp, 'amount': '200', 'reason': 'live test extra shift', 'paid': '0', 'client_key': k},
+          idem: k);
+      expect(r['status'], 'unpaid');
+      await expectLater(
+          s.api.post('overtime', {'kind': 'overtime', 'employee_id': emp, 'amount': '200', 'reason': 'live test paid shift', 'paid': '1'}),
+          apiError(400));
+      final list = ((await s.api.get('staff-entries', {'kind': 'overtime'}))['rows'] as List).cast<Map>();
+      expect(list.any((x) => x['id'] == r['id'] && x['status'] == 'unpaid'), isTrue);
+    });
+
+    test('Supplier: payment lowers the balance exactly once (idempotent retry)', () async {
+      final sup = ((await s.api.get('suppliers'))['suppliers'] as List).cast<Map>().firstWhere((x) => (x['balance'] as int) > 10000);
+      final before = (await s.api.get('suppliers/one', {'id': '${sup['id']}'}))['balance'] as int;
+      final k = randomKey();
+      final body = {'supplier_id': sup['id'], 'amount': '50', 'mode': 'Cash', 'client_key': k};
+      await s.api.post('suppliers/pay', body, idem: k);
+      await s.api.post('suppliers/pay', body, idem: k);
+      final after = (await s.api.get('suppliers/one', {'id': '${sup['id']}'}))['balance'] as int;
+      expect(after, before - 5000);
+    });
+
+    test('Documents: photo upload goes to the private inbox and is listed', () async {
+      final bytes = File(jpegPath!).readAsBytesSync();
+      final r = await s.api.post('documents', {
+        'kind': 'purchase',
+        'files': [
+          {'name': 'live-bill.jpg', 'data': base64Encode(bytes)}
+        ]
+      });
+      final id = (r['ids'] as List).first;
+      final rows = ((await s.api.get('documents', {'status': 'open'}))['rows'] as List).cast<Map>();
+      expect(rows.any((x) => x['id'] == id), isTrue);
+    }, skip: jpegPath == null ? 'no JPEG' : null);
+
+    test('Notifications: list + per-user snooze; expenses period filter; subscription state', () async {
+      final n = await s.api.get('notifications');
+      final items = (n['items'] as List).cast<Map>();
+      if (items.isNotEmpty) {
+        await s.api.post('f360/snooze', {'key': items.first['dedupe_key'], 'minutes': 60});
+        final n2 = (await s.api.get('notifications'))['items'] as List;
+        expect((n2.cast<Map>().firstWhere((x) => x['id'] == items.first['id']))['snoozed'], isTrue);
+      }
+      final e = await s.api.get('expenses', {
+        'from': DateTime.parse(s.permissions!.businessDate).subtract(const Duration(days: 90)).toIso8601String().substring(0, 10),
+        'to': s.permissions!.businessDate
+      });
+      expect((e['rows'] as List).cast<Map>().fold<int>(0, (a, x) => a + (x['voided'] == 1 ? 0 : x['total'] as int)), e['total']);
+      final sub = await s.api.get('subscriptions/current');
+      expect(sub['read_only'], isFalse);
+    });
+  });
+
+  test('Isolation: another restaurant\'s owner cannot read KSDD supplier, cash book rows or sales', () async {
+    final ksdd = await signIn('owner@staging.test', 'OwnerPass#2026', tenant: 1, branch: 1);
+    final ksddSup = ((await ksdd.api.get('suppliers'))['suppliers'] as List).cast<Map>().first;
+    final from = DateTime.parse(ksdd.permissions!.businessDate).subtract(const Duration(days: 300)).toIso8601String().substring(0, 10);
+    final ksddSales = await ksdd.api.get('sales', {'from': from, 'to': ksdd.permissions!.businessDate});
+    ksdd.dispose();
+    final a = await signIn('ownera@example.test', 'TestPass#2026');
+    final alpha = a.memberships.firstWhere((m) => m['name'] == 'Alpha Dhaba');
+    await a.select((alpha['id'] as num).toInt(), (((alpha['branches'] as List).first as Map)['id'] as num).toInt());
+    final mine = ((await a.api.get('suppliers'))['suppliers'] as List).cast<Map>();
+    expect(mine.any((x) => x['name'] == ksddSup['name']), isFalse);
+    try {
+      final one = await a.api.get('suppliers/one', {'id': '${ksddSup['id']}'});
+      expect((one['supplier'] as Map)['name'], isNot(ksddSup['name']));
+    } on ApiError catch (e) {
+      expect(e.status, 404);
+    }
+    final aSales = await a.api.get('sales', {'from': from, 'to': a.permissions!.businessDate});
+    expect((aSales['totals'] as Map)['total'], isNot((ksddSales['totals'] as Map)['total']));
+    a.dispose();
+  });
+
+  test('Cash counter: Cash book, Accounts and Suppliers are refused by the server (403)', () async {
+    final c = await signIn('cashier.a@example.test', 'CashPass#2026');
+    for (final r in ['cashbook', 'accounts', 'suppliers', 'staff-entries', 'f360/users']) {
+      await expectLater(c.api.get(r), apiError(403), reason: r);
+    }
+    c.dispose();
+  });
+
   test('read-only subscription (second restaurant, no trial): reads work, writes get 402', () async {
     final s = await signIn('ownera@example.test', 'TestPass#2026');
     final alphaTwo = s.memberships.firstWhere((m) => m['name'] == 'Alpha Two');
@@ -212,7 +366,8 @@ void main() {
     expect(s.permissions!.can('expenses.create'), isFalse);
     await s.api.get('closing');
     await expectLater(
-        s.api.post('expenses', {'date': s.permissions!.businessDate, 'category': 'Vegetable', 'amount': '10', 'mode': 'Cash'}), apiError(402));
+        s.api.post('expenses', {'date': s.permissions!.businessDate, 'category': 'Vegetable', 'amount': '10', 'mode': 'Cash'}),
+        apiError(402));
     s.dispose();
   });
 }

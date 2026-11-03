@@ -1,0 +1,46 @@
+{
+ "from": "2026-11-01",
+ "to": "2026-11-05",
+ "rows": [
+  {
+   "id": 1,
+   "item_id": 1,
+   "move_no": "SM00001",
+   "date": "2026-11-02",
+   "kind": "opening",
+   "qty": 550,
+   "value": 1650000,
+   "qty_after": 550,
+   "location": "Main Store",
+   "reason": "Opening from Books 360 stock at Finance 360 cut-over (qty \u00d7 last purchase rate)",
+   "source_type": "legacy",
+   "source_id": null,
+   "reversed_by": null,
+   "item": "DEMO Onion",
+   "unit": "kg",
+   "by_name": null,
+   "kind_label": "Opening stock"
+  }
+ ],
+ "by_kind": {
+  "opening": {
+   "n": 1,
+   "value": 1650000
+  }
+ },
+ "kinds": {
+  "opening": "Opening stock",
+  "receipt": "Purchase receipt",
+  "return_out": "Purchase return",
+  "issue": "Issue / consumption",
+  "wastage": "Wastage / spoilage",
+  "damage": "Damaged",
+  "expired": "Expired",
+  "adjust_in": "Adjustment (+)",
+  "adjust_out": "Adjustment (\u2212)",
+  "count_adj": "Physical count adjustment",
+  "transfer_in": "Transfer in",
+  "transfer_out": "Transfer out",
+  "reversal": "Reversal"
+ }
+}

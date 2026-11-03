@@ -1,0 +1,44 @@
+{
+ "rows": [
+  {
+   "id": 1,
+   "ho_no": "HO00001",
+   "date": "2026-11-05",
+   "from_user": 1,
+   "to_user": 2,
+   "from_account": "Cash",
+   "to_account": null,
+   "amount": 200000,
+   "accepted_amount": null,
+   "denominations": null,
+   "note": "DEMO evening cash",
+   "status": "sent",
+   "response_note": null,
+   "bk_txn_id": null,
+   "responded_by": null,
+   "responded_at": null,
+   "created_at": "2026-11-03 03:35:43",
+   "from_name": "Staging Owner",
+   "to_name": "Demo Manager"
+  }
+ ],
+ "receivers": [
+  {
+   "id": 3,
+   "name": "Demo Accounts"
+  },
+  {
+   "id": 2,
+   "name": "Demo Manager"
+  }
+ ],
+ "accounts": [
+  "Cash",
+  "Bank of India",
+  "UPI / Paytm",
+  "Card",
+  "Owner (Safik Home)"
+ ],
+ "cash_account": "Cash",
+ "mine_pending": 0
+}

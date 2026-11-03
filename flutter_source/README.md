@@ -1,4 +1,10 @@
-# Finance 360 Android app (Flutter) — v0.29.0
+# Finance 360 Android app (Flutter) — v0.36.0
+
+**V36:** orange/cream design merged into the working app, plus native Sales history, Cash book, Accounts, Cash handover,
+Suppliers (ledger, aging, pay), Purchase bills, Stock movements, Documents, Notifications, Staff payments, Salary history,
+Subscription, Users and Profile screens — all on the real `/api/v1`. Report: `../docs/V36_APP_REPORT.md`.
+Staging build: `flutter build apk --release --flavor staging --dart-define=API_BASE=https://staging.ksdd.in/api/v1/index.php`
+
 
 Native Flutter / Material 3 app for the **Finance 360 V30** single-site backend at `https://ksdd.in` (`../site/public_html`, one shared database).
 No WebView. No second database: every figure is read from and written to the restaurant's own branch ledger through the
@@ -19,8 +25,8 @@ same server functions the website uses (`/api/v1` → `f3_dispatch`).
 | Expenses | List + add (category, amount, Cash/Bank/UPI/Card, note, optional receipt photo; duplicate warning). |
 | Stock / Staff / Reports | Stock value, reorder list, items; staff by department with search and status; monthly P&L (cash & purchases view, with the server's own basis note), items not in P&L (Cash Acess, transfers), expenses by category, GL P&L + balance-sheet check. |
 
-Modules the server allows but the app does not implement yet (cash book, handover, suppliers ledger, documents, accounts,
-settings) show an honest "use the website" page — never a fake screen.
+Every module the server can grant has a native screen (V36). A module key this app version does not know shows an
+honest "needs a newer app" page — never a fake screen.
 
 ## Configure and build
 

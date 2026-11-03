@@ -1,0 +1,35 @@
+{
+ "as_of": "2026-11-05",
+ "accounts": [
+  {
+   "account": "Cash",
+   "balance": 57315000,
+   "today_in": 0,
+   "today_out": 150000
+  },
+  {
+   "account": "Bank of India",
+   "balance": 6000000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "UPI / Paytm",
+   "balance": 52200000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "Card",
+   "balance": 14500000,
+   "today_in": 0,
+   "today_out": 0
+  },
+  {
+   "account": "Owner (Safik Home)",
+   "balance": 0,
+   "today_in": 0,
+   "today_out": 0
+  }
+ ]
+}

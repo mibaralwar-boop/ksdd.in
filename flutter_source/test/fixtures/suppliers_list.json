@@ -1,0 +1,61 @@
+{
+ "suppliers": [
+  {
+   "id": 1,
+   "code": "SUP0001",
+   "name": "DEMO Sharma Vegetables",
+   "phone": null,
+   "whatsapp": null,
+   "city": null,
+   "gstin": null,
+   "active": 1,
+   "credit_days": 0,
+   "photo_file_id": null,
+   "last_paid": null,
+   "last_purchase": "2026-10-28",
+   "bills": 0,
+   "balance": 2000000,
+   "purchases": 3600000,
+   "overdue": 0,
+   "credit_limit": null
+  }
+ ],
+ "total": 1,
+ "page": 0,
+ "limit": 100,
+ "totals": {
+  "payable": 2000000,
+  "advance": 0,
+  "overdue": 0,
+  "count": 1
+ },
+ "categories": [
+  "Salary - Current Month",
+  "Salary - Previous Month",
+  "Salary -",
+  "Other Staff Sallery",
+  "Overtime Wages",
+  "Staff Tip",
+  "Staff Transport & Other",
+  "Medical Expenses",
+  "Grocery",
+  "Vegetable",
+  "Kitchen Itam",
+  "Cleaning Material",
+  "Lakdi Gutkha",
+  "Electricity Bill",
+  "Recharge",
+  "Royalti Fees Khadak Singh",
+  "Parth (Gupta Ji)",
+  "Repair And Maintenance",
+  "Decoration",
+  "Fuel & Vehicle Expenses",
+  "Bus Tip Or Monthly",
+  "Taxi Gift And Card",
+  "Card Dairy Pen",
+  "Manzil Restaurant",
+  "Old Balance Of Party",
+  "Cash Withdrawal / Bank Transfer",
+  "Staff Advance (recoverable)"
+ ]
+}

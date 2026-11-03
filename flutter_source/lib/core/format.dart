@@ -45,9 +45,18 @@ int? parseRupees(String s) {
   return int.parse(parts[0]) * 100 + int.parse(frac);
 }
 
-String tr(BuildContext context, String en, String hi) =>
-    Localizations.localeOf(context).languageCode == 'hi' ? hi : en;
+String tr(BuildContext context, String en, String hi) => Localizations.localeOf(context).languageCode == 'hi' ? hi : en;
 
-const brandOrange = Color(0xFFE87520);
-const brandDark = Color(0xFF191919);
-const brandCream = Color(0xFFFFF8ED);
+// V36 orange / cream design tokens (docs/DESIGN_SYSTEM.md of the V36 design pack).
+const brandOrange = Color(0xFFEE7418);
+const brandBurnt = Color(0xFFB84912);
+const brandDark = Color(0xFF2E2119);
+const brandCream = Color(0xFFFFF8EC);
+const brandPaper = Color(0xFFFFFDF9);
+const brandPeach = Color(0xFFFFE9D9);
+const brandMuted = Color(0xFF74685E);
+const brandLine = Color(0xFFF2E9DF);
+const brandGreen = Color(0xFF217A49);
+const brandGreenBg = Color(0xFFE4F3E6);
+const brandRed = Color(0xFFBD4537);
+const brandRedBg = Color(0xFFFFEAE4);

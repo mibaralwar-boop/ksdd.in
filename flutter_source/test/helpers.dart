@@ -8,8 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 /// Responses captured from the real V29 backend on a local staging server (demo data only).
-Map<String, dynamic> fixture(String name) =>
-    jsonDecode(File('test/fixtures/$name.json').readAsStringSync()) as Map<String, dynamic>;
+Map<String, dynamic> fixture(String name) => jsonDecode(File('test/fixtures/$name.json').readAsStringSync()) as Map<String, dynamic>;
 
 typedef Handler = FutureOr<(int, Object)> Function(http.Request req, Map<String, dynamic> body);
 
@@ -36,15 +35,15 @@ class FakeServer {
   void on(String key, Handler h) => routes[key] = h;
   void json(String key, Object body, [int status = 200]) => routes[key] = (_, __) => (status, body);
 
-  List<http.Request> calls(String key) =>
-      log.where((r) => '${r.method} ${r.url.queryParameters['__path']}' == key).toList();
+  List<http.Request> calls(String key) => log.where((r) => '${r.method} ${r.url.queryParameters['__path']}' == key).toList();
   Map<String, dynamic> lastBody(String key) => jsonDecode(calls(key).last.body) as Map<String, dynamic>;
 }
 
 final tokens = {'access_token': 'A' * 40, 'refresh_token': 'R' * 40, 'token_type': 'Bearer', 'expires_in': 900};
 
 /// A signed-in session inside one branch, using [selectFixture] for permissions.
-Future<(Session, FakeServer)> signedInSession(String selectFixture, {void Function(FakeServer s)? routes, Map<String, dynamic>? overridePerms}) async {
+Future<(Session, FakeServer)> signedInSession(String selectFixture,
+    {void Function(FakeServer s)? routes, Map<String, dynamic>? overridePerms}) async {
   final server = FakeServer();
   final sel = fixture(selectFixture);
   final perms = {...(sel['permissions'] as Map<String, dynamic>), ...?overridePerms};

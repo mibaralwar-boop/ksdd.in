@@ -1,0 +1,12 @@
+{
+ "state": "active",
+ "label": "Active",
+ "read_only": false,
+ "days_left": 364,
+ "period_end": "2027-11-03 03:23:52",
+ "period_end_ist": "3 Nov 2027, 8:53 AM IST",
+ "plan": "Founding restaurant (complimentary)",
+ "term": "yearly",
+ "kind": "complimentary",
+ "renewal_warning": false
+}

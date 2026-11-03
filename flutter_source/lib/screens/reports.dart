@@ -76,7 +76,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 SumRow('Owner money in / drawings', '${rupees(not['owner_in'])} / ${rupees(not['owner_draw'])}'),
               ]),
               SectionCard(title: 'Expenses by category', children: [
-                for (final c in (m['expense_categories'] as List? ?? const [])) SumRow('${(c as Map)['category']} (${c['n']})', rupees(c['amount'])),
+                for (final c in (m['expense_categories'] as List? ?? const []))
+                  SumRow('${(c as Map)['category']} (${c['n']})', rupees(c['amount'])),
                 if ((m['expense_categories'] as List? ?? const []).isEmpty) const Text('No expenses.'),
               ]),
               SectionCard(title: 'Cash', children: [
@@ -93,7 +94,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     SumRow('Assets', rupees(bs['assets'])),
                     SumRow('Liabilities', rupees(bs['liabilities'])),
                     SumRow('Equity', rupees(bs['equity'])),
-                    SumRow('Balanced', bs['balanced'] == true ? 'Yes' : 'NO — check ledger', color: bs['balanced'] == true ? null : const Color(0xFFB3261E)),
+                    SumRow('Balanced', bs['balanced'] == true ? 'Yes' : 'NO — check ledger',
+                        color: bs['balanced'] == true ? null : brandRed),
                   ],
                 ]),
             ]);

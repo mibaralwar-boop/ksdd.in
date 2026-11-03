@@ -8,36 +8,113 @@ import '../core/format.dart';
 import '../core/session.dart';
 import '../widgets/common.dart';
 
-class ExpensesScreen extends StatelessWidget {
+/// Expenses for a period (`GET expenses?from&to`): Add Expense at the top, totals by category, void with reason
+/// (`POST expenses/void`) where permitted and the day is not locked (server decides `editable`).
+class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key, required this.session});
   final Session session;
+  @override
+  State<ExpensesScreen> createState() => _ExpensesScreenState();
+}
+
+class _ExpensesScreenState extends State<ExpensesScreen> {
+  late String from;
+  late String to;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.session.permissions!;
+    // A user who may only enter today's expenses sees today; others see this month.
+    if (p.can('expenses.view') && !p.can('expenses.today') || p.can('reports.view')) {
+      final bd = parseYmd(p.businessDate);
+      from = ymd(DateTime(bd.year, bd.month, 1));
+    } else {
+      from = p.businessDate;
+    }
+    to = p.businessDate;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.session;
     final p = session.permissions!;
+    final canAdd = (p.can('expenses.create') || p.can('expenses.today')) && !p.readOnly;
+    Future<void> add(Future<void> Function() reload) async {
+      final saved = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ExpenseForm(session: session)));
+      if (saved == true) await reload();
+    }
+
     return Loader<Map<String, dynamic>>(
-      load: () => session.api.get('expenses'),
+      key: ValueKey('$from|$to'),
+      load: () => session.api.get('expenses', {'from': from, 'to': to}),
       builder: (context, d, reload) {
-        final rows = d['rows'] as List? ?? const [];
-        return ListView(padding: const EdgeInsets.all(16), children: [
-          if ((p.can('expenses.create') || p.can('expenses.today')) && !p.readOnly)
-            FilledButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Add expense'),
-              onPressed: () async {
-                final saved = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ExpenseForm(session: session)));
-                if (saved == true) await reload();
-              },
-            ),
+        final rows = [for (final x in (d['rows'] as List? ?? const [])) (x as Map).cast<String, dynamic>()];
+        final byCat = (d['by_category'] is Map ? (d['by_category'] as Map) : const {}).entries.toList()
+          ..sort((a, b) => ((b.value as num?) ?? 0).compareTo((a.value as num?) ?? 0));
+        return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+          if (canAdd)
+            FilledButton.icon(icon: const Icon(Icons.add_rounded), label: const Text('Add expense'), onPressed: () => add(reload)),
+          const SizedBox(height: 10),
+          PeriodBar(
+            from: from,
+            to: to,
+            businessDate: p.businessDate,
+            onChanged: (f, t) => setState(() {
+              from = f;
+              to = t;
+            }),
+          ),
           SectionCard(children: [SumRow('Total (${d['count'] ?? rows.length})', rupees(d['total']), bold: true)]),
-          if (rows.isEmpty) const Padding(padding: EdgeInsets.all(16), child: Text('No expenses in this period.')),
+          if (byCat.length > 1)
+            SectionCard(title: 'By category', icon: Icons.pie_chart_outline_rounded, children: [
+              for (final e in byCat) SumRow(e.key.toString(), rupees(e.value)),
+            ]),
+          if (rows.isEmpty)
+            EmptyState(
+              icon: Icons.receipt_long_rounded,
+              title: 'No expenses in this period.',
+              subtitle: from == to ? 'Nothing was entered for $from.' : 'Nothing was entered from $from to $to.',
+              action: canAdd
+                  ? OutlinedButton.icon(icon: const Icon(Icons.add_rounded), label: const Text('Add expense'), onPressed: () => add(reload))
+                  : null,
+            ),
           for (final r in rows)
             Card(
               child: ListTile(
-                title: Text('${(r as Map)['category'] ?? ''}'),
-                subtitle: Text('${r['date'] ?? ''} · ${r['account'] ?? ''}${r['description'] != null ? ' · ${r['description']}' : ''}'),
-                trailing: Text(rupees(r['total'] ?? r['amount'])),
+                leading: CircleAvatar(
+                  backgroundColor: r['voided'] == 1 ? brandLine : brandPeach,
+                  child: Icon(r['files'] is List && (r['files'] as List).isNotEmpty ? Icons.receipt_rounded : Icons.payments_outlined,
+                      color: brandBurnt),
+                ),
+                title: Text('${r['category'] ?? ''}',
+                    style: TextStyle(fontWeight: FontWeight.w700, decoration: r['voided'] == 1 ? TextDecoration.lineThrough : null)),
+                subtitle: Text([
+                  r['date'],
+                  r['account'],
+                  r['description'],
+                  if (r['voided'] == 1) 'voided: ${r['void_reason'] ?? ''}',
+                ].where((x) => x != null && x != '').join(' · ')),
+                trailing: Text(rupees(r['total'] ?? r['amount']), style: const TextStyle(fontWeight: FontWeight.w800)),
+                onLongPress: p.can('expenses.void') && r['voided'] != 1 && r['editable'] != false && !p.readOnly
+                    ? () async {
+                        final why = await askText(context, 'Void this expense?',
+                            '${r['category']} ${rupees(r['total'])} on ${r['date']}. It stays in history as voided.');
+                        if (why == null) return;
+                        try {
+                          await session.api.post('expenses/void', {'id': r['id'], 'reason': why});
+                          await reload();
+                        } on ApiError catch (e) {
+                          if (context.mounted) showMessage(context, e.message, error: true);
+                        }
+                      }
+                    : null,
               ),
+            ),
+          if (p.can('expenses.void') && rows.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Press and hold an expense to void it.', style: Theme.of(context).textTheme.bodySmall),
             ),
         ]);
       },
@@ -71,15 +148,18 @@ class _ExpenseFormState extends State<ExpenseForm> {
     }
     setState(() => busy = true);
     try {
-      await api.post('expenses', {
-        'date': date.text.trim(),
-        'category': category,
-        'amount': amount.text.trim(),
-        'mode': mode,
-        'description': desc.text.trim(),
-        if (photo != null) 'files': [photo],
-        'confirm_duplicate': dupOk,
-      }, idem: dupOk ? '${_key}d' : _key);
+      await api.post(
+          'expenses',
+          {
+            'date': date.text.trim(),
+            'category': category,
+            'amount': amount.text.trim(),
+            'mode': mode,
+            'description': desc.text.trim(),
+            if (photo != null) 'files': [photo],
+            'confirm_duplicate': dupOk,
+          },
+          idem: dupOk ? '${_key}d' : _key);
       if (mounted) Navigator.pop(context, true);
     } on ApiError catch (e) {
       if (!mounted) return;
@@ -132,7 +212,9 @@ class _ExpenseFormState extends State<ExpenseForm> {
                 DropdownButtonFormField<String>(
                   initialValue: mode,
                   decoration: const InputDecoration(labelText: 'Paid by'),
-                  items: [for (final m in ['Cash', 'Bank', 'UPI', 'Card']) DropdownMenuItem(value: m, child: Text(m))],
+                  items: [
+                    for (final m in ['Cash', 'Bank', 'UPI', 'Card']) DropdownMenuItem(value: m, child: Text(m))
+                  ],
                   onChanged: (v) => setState(() => mode = v ?? 'Cash'),
                 ),
                 const SizedBox(height: 12),
@@ -140,9 +222,15 @@ class _ExpenseFormState extends State<ExpenseForm> {
                 const SizedBox(height: 12),
                 Text(photo == null ? 'Receipt photo (optional)' : 'Receipt photo added'),
                 Row(children: [
-                  Expanded(child: OutlinedButton.icon(onPressed: () => _photo(ImageSource.camera), icon: const Icon(Icons.photo_camera), label: const Text('Camera'))),
+                  Expanded(
+                      child: OutlinedButton.icon(
+                          onPressed: () => _photo(ImageSource.camera), icon: const Icon(Icons.photo_camera), label: const Text('Camera'))),
                   const SizedBox(width: 8),
-                  Expanded(child: OutlinedButton.icon(onPressed: () => _photo(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: const Text('Gallery'))),
+                  Expanded(
+                      child: OutlinedButton.icon(
+                          onPressed: () => _photo(ImageSource.gallery),
+                          icon: const Icon(Icons.photo_library),
+                          label: const Text('Gallery'))),
                 ]),
                 const SizedBox(height: 16),
                 FilledButton(onPressed: busy ? null : () => _save(), child: Text(busy ? 'Saving…' : 'Save expense')),

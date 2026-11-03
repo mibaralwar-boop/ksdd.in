@@ -35,7 +35,9 @@ class _ClosingScreenState extends State<ClosingScreen> {
   final upi = TextEditingController();
   final actual = TextEditingController();
   final reason = TextEditingController();
-  final denoms = {for (final d in [500, 200, 100, 50, 20, 10]) d: TextEditingController()};
+  final denoms = {
+    for (final d in [500, 200, 100, 50, 20, 10]) d: TextEditingController()
+  };
   final coins = TextEditingController();
   String? expConfirmed;
   bool confirm = false;
@@ -71,7 +73,13 @@ class _ClosingScreenState extends State<ClosingScreen> {
     setState(() {
       s = r;
       final st = (r['step'] as num?)?.toInt() ?? 1;
-      step = st >= 6 ? 4 : st >= 5 ? 3 : st >= 4 ? 2 : 1;
+      step = st >= 6
+          ? 4
+          : st >= 5
+              ? 3
+              : st >= 4
+                  ? 2
+                  : 1;
     });
   }
 
@@ -194,7 +202,7 @@ class _ClosingScreenState extends State<ClosingScreen> {
           StatusChip(s!['status'] as String?),
         ]),
         const SizedBox(height: 4),
-        LinearProgressIndicator(value: step / 4, color: brandOrange, backgroundColor: const Color(0xFFFFE2C7)),
+        LinearProgressIndicator(value: step / 4, color: brandOrange, backgroundColor: brandPeach),
         const SizedBox(height: 4),
         Text('Step $step of 4 · ${['Sales', 'Expenses', 'Actual Cash', 'Review'][step - 1]}', style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
@@ -261,7 +269,9 @@ class _ClosingScreenState extends State<ClosingScreen> {
           children: [
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final e in denoms.entries)
-                SizedBox(width: 140, child: NumberField(controller: e.value, label: '₹${e.key} ×', decimals: false, onChanged: (_) => _fromDenoms())),
+                SizedBox(
+                    width: 140,
+                    child: NumberField(controller: e.value, label: '₹${e.key} ×', decimals: false, onChanged: (_) => _fromDenoms())),
               SizedBox(width: 140, child: NumberField(controller: coins, label: 'Coins ₹', onChanged: (_) => _fromDenoms())),
             ]),
             const SizedBox(height: 8),
@@ -272,15 +282,27 @@ class _ClosingScreenState extends State<ClosingScreen> {
         SumRow('− Cash expenses & payouts', rupees(cashOut)),
         SumRow('Total Sale − cash expenses', rupees(totalSale - cashOut), bold: true),
         if (d != null)
-          SumRow(d > 0 ? 'Cash Acess' : d < 0 ? 'Cash Short' : 'Difference', rupees(d.abs()),
-              bold: true, color: d > 0 ? const Color(0xFF1B7F3B) : d < 0 ? const Color(0xFFB3261E) : null),
+          SumRow(
+              d > 0
+                  ? 'Cash Acess'
+                  : d < 0
+                      ? 'Cash Short'
+                      : 'Difference',
+              rupees(d.abs()),
+              bold: true,
+              color: d > 0
+                  ? brandGreen
+                  : d < 0
+                      ? brandRed
+                      : null),
         const SizedBox(height: 12),
         TextFormField(
           controller: reason,
           maxLines: 2,
           decoration: InputDecoration(
               labelText: need >= 0 ? 'Reason for difference (required above ${rupees(need)})' : 'Reason for difference (optional)'),
-          validator: (v) => d != null && need >= 0 && d.abs() > need && (v ?? '').trim().isEmpty ? 'Write a reason for the difference' : null,
+          validator: (v) =>
+              d != null && need >= 0 && d.abs() > need && (v ?? '').trim().isEmpty ? 'Write a reason for the difference' : null,
         ),
       ]),
     ];
@@ -304,12 +326,21 @@ class _ClosingScreenState extends State<ClosingScreen> {
         SumRow('Expenses (${(s!['expenses'] as List?)?.length ?? 0})', rupees(s!['expenses_total'])),
         SumRow('All cash paid out', rupees(s!['cash_out'])),
         SumRow('Actual Cash', rupees(s!['actual_cash']), bold: true),
-        if (d != null) SumRow(d > 0 ? 'Cash Acess' : d < 0 ? 'Cash Short' : 'Difference', rupees(d.abs()), bold: true),
+        if (d != null)
+          SumRow(
+              d > 0
+                  ? 'Cash Acess'
+                  : d < 0
+                      ? 'Cash Short'
+                      : 'Difference',
+              rupees(d.abs()),
+              bold: true),
       ]),
-      for (final i in issues) Banner2(i, color: const Color(0xFFFDE2E1), icon: Icons.block),
+      for (final i in issues) Banner2(i, color: brandRedBg, icon: Icons.block),
       if ((s!['legacy_sales'] as List? ?? const []).isNotEmpty)
         const Banner2('Books already has sale entries for this day — the server will hold your sales for admin review.'),
-      const Banner2('After finalizing, this day is LOCKED. Corrections need an admin with a reason. No admin approval is needed to finalize.',
+      const Banner2(
+          'After finalizing, this day is LOCKED. Corrections need an admin with a reason. No admin approval is needed to finalize.',
           icon: Icons.lock_outline),
       CheckboxListTile(
         value: confirm,
@@ -323,7 +354,7 @@ class _ClosingScreenState extends State<ClosingScreen> {
   Widget _success() {
     final sum = (done!['summary'] as Map?) ?? const {};
     return ListView(padding: const EdgeInsets.all(16), children: [
-      const Icon(Icons.check_circle, color: Color(0xFF1B7F3B), size: 64),
+      const Icon(Icons.check_circle, color: brandGreen, size: 64),
       Text(done!['final'] == true ? 'Closing final' : 'Closing submitted',
           textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
       Text((done!['message'] ?? '').toString(), textAlign: TextAlign.center),
@@ -338,10 +369,12 @@ class _ClosingScreenState extends State<ClosingScreen> {
       ]),
       DaybookPhotos(api: api, date: (done!['date'] ?? s!['date']).toString(), canAdd: true),
       const SizedBox(height: 12),
-      OutlinedButton(onPressed: () => setState(() {
-            done = null;
-            _load();
-          }), child: const Text('Done')),
+      OutlinedButton(
+          onPressed: () => setState(() {
+                done = null;
+                _load();
+              }),
+          child: const Text('Done')),
     ]);
   }
 
@@ -349,12 +382,17 @@ class _ClosingScreenState extends State<ClosingScreen> {
     final sales = (s!['sales'] as Map?) ?? const {};
     final calc = (s!['calc'] as Map?) ?? const {};
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Row(children: [
-        Expanded(child: Text('Business day ${s!['date']}', style: Theme.of(context).textTheme.titleLarge)),
-        StatusChip(s!['status'] as String?),
-      ]),
-      if (s!['block_reason'] != null) Banner2(s!['block_reason'].toString(), icon: Icons.lock_outline),
-      SectionCard(title: 'Locked closing', children: [
+      SoftCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(children: [
+          const Icon(Icons.calendar_today_outlined, color: brandOrange, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Business day ${s!['date']}', style: Theme.of(context).textTheme.titleMedium)),
+          StatusChip(s!['status'] as String?),
+        ]),
+      ),
+      Banner2((s!['block_reason'] ?? 'This day is closed and locked.').toString(), icon: Icons.lock_outline_rounded),
+      SectionCard(title: 'Locked closing', icon: Icons.lock_outline_rounded, children: [
         SumRow('Cash Sale', rupees(sales['cash'])),
         SumRow('Card Sale', rupees(sales['card'])),
         SumRow('UPI Sale', rupees(sales['upi'])),
@@ -453,11 +491,15 @@ class _DaybookPhotosState extends State<DaybookPhotos> {
           Row(children: [
             Expanded(
                 child: OutlinedButton.icon(
-                    onPressed: busy ? null : () => _add(ImageSource.camera), icon: const Icon(Icons.photo_camera), label: const Text('Camera'))),
+                    onPressed: busy ? null : () => _add(ImageSource.camera),
+                    icon: const Icon(Icons.photo_camera),
+                    label: const Text('Camera'))),
             const SizedBox(width: 8),
             Expanded(
                 child: OutlinedButton.icon(
-                    onPressed: busy ? null : () => _add(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: const Text('Gallery'))),
+                    onPressed: busy ? null : () => _add(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library),
+                    label: const Text('Gallery'))),
           ]),
         ],
       ]);
