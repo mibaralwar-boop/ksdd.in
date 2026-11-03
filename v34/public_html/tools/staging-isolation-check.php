@@ -44,11 +44,12 @@ echo "Staging database " . cfg()['db_name'] . " · KSDD branch $KB · " . count(
 
 // ---- two throw-away restaurants through the real registration code ----
 $wasOpen = p_setting('signup_enabled'); p_setting_set('signup_enabled', '1');
+register_shutdown_function(function () use ($wasOpen) { p_setting_set('signup_enabled', (string)($wasOpen ?? '0')); $e = error_get_last(); if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) fwrite(STDERR, "STOPPED: {$e['message']} ({$e['file']}:{$e['line']})\nSelf-registration closed again.\n"); });
 $att = [];
 try {
     foreach (['A', 'B'] as $x) {
         $email = 'isolation-check-' . strtolower($x) . '-' . bin2hex(random_bytes(3)) . '@example.invalid'; $pw = 'Iso#' . bin2hex(random_bytes(8));
-        $r = reg_start(['owner_name' => "Isolation Check $x", 'mobile' => '9876543210', 'email' => $email, 'password' => $pw, 'restaurant' => "ISOLATION CHECK $x (delete me)", 'city' => 'Test', 'state' => 'Test', 'pincode' => '110001', 'branch_name' => 'Main', 'cutoff_hour' => 4, 'accept_terms' => 1]);
+        echo "  registering test restaurant $x …\n"; $r = reg_start(['owner_name' => "Isolation Check $x", 'mobile' => '9876543210', 'email' => $email, 'password' => $pw, 'restaurant' => "ISOLATION CHECK $x (delete me)", 'city' => 'Test', 'state' => 'Test', 'pincode' => '110001', 'branch_name' => 'Main', 'cutoff_hour' => 4, 'accept_terms' => 1]);
         $b = (string)pval('SELECT body FROM p_outbox WHERE recipient=? AND kind=? ORDER BY id DESC LIMIT 1', $email, 'verify');
         if (!preg_match('/token=([A-Za-z0-9_-]{20,})/', $b, $m)) throw new RuntimeException('No verification e-mail in p_outbox (set platform.mail.mode = log on staging while testing).');
         p_verify_email($m[1]); prun("UPDATE p_registrations SET status='verified' WHERE uid=? AND status='draft'", $r['registration']); $t = reg_provision($r['registration']);

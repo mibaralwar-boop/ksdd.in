@@ -2,7 +2,7 @@
 declare(strict_types=1);
 date_default_timezone_set('Asia/Kolkata');
 require_once __DIR__.'/platform/mt.php'; // V31: single-database tenancy (scoped views + MtPDO)
-ini_set('display_errors','0');
+ini_set('display_errors',PHP_SAPI==='cli'?'stderr':'0'); // CLI tools show their errors (Hostinger hides them otherwise)
 ini_set('log_errors','1');
 const ENTRY_TYPES = ['sale','expense','payment-in','payment-out','salary','advance','deposit','withdrawal','refund','settlement'];
 const ACCOUNTS = ['Cash','Paytm','Bank of India','Card','Other bank','Unallocated'];
