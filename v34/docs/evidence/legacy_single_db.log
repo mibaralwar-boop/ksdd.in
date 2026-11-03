@@ -1,4 +1,4 @@
-Converted 81 tables in 5.3s. Verification: 81 OK, 0 mismatch.
+Converted 81 tables in 4.3s. Verification: 81 OK, 0 mismatch.
 
 == Migration & preservation ==
   PASS MIG-01 V16 migration applied (v13)
@@ -151,7 +151,7 @@ Converted 81 tables in 5.3s. Verification: 81 OK, 0 mismatch.
 
 == V17 · V16 untouched ==
   PASS V17-REG-01 Daily closing, expenses, staff entries & payroll rows unchanged by all V17 work
-PHP Warning:  file_get_contents(/tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/v34run/migrations/f360_v17_reconcile.sql): Failed to open stream: No such file or directory in /tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/v34run/legacy_single_db/tests/v17_tests.php on line 189
+PHP Warning:  file_get_contents(/tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/v34final/migrations/f360_v17_reconcile.sql): Failed to open stream: No such file or directory in /tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/v34final/legacy_single_db/tests/v17_tests.php on line 189
   PASS V17-REC-01 Reconciliation SQL (migrations/f360_v17_reconcile.sql): every check returns zero rows
 
 == V17 · Migration reconciliation & bigger bills ==
@@ -180,7 +180,7 @@ PHP Warning:  file_get_contents(/tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5
   PASS V19-MIG-01 Migration moves a month still in draft to the V19 rule (calendar divisor), maps old leave fields and asks for review; approved months untouched
 
 == V17 · Volume ==
-      timings: {"suppliers":0.023,"items":0.027,"items_search":0.012,"bills":0.06,"register":0.233,"aging":0.22}
+      timings: {"suppliers":0.02,"items":0.024,"items_search":0.009,"bills":0.044,"register":0.206,"aging":0.194}
   PASS V17-PERF-01 1,000 suppliers · 1,000 items · 10,000 bill lines: lists & reports under 2 s each
 
 == V20 · Integrations (mock Google Drive + AiSensy) ==

@@ -1,5 +1,5 @@
-Registered founding restaurant: tenant #1, branch #1 (uid 6nzcphw99hx3), users 7
-Converted 129 tables in 8.5s. Verification: 129 OK, 0 mismatch.
+Registered founding restaurant: tenant #1, branch #1 (uid zccmoapgoep8), users 7
+Converted 129 tables in 6.9s. Verification: 129 OK, 0 mismatch.
 MODE: V31 single database (mt_* base tables + scoped views + V34 guard)
 
 == Platform schema ==

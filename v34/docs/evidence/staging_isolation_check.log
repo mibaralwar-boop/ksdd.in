@@ -1,0 +1,8 @@
+Staging database ksdd_test_legacy · KSDD branch 1 · 12 real KSDD names used as leak detectors
+  PASS READ-0 test restaurant #5: 2415 GET calls on 69 routes with KSDD ids/names (codes {"404":388,"200":1853,"400":174})
+  PASS WRITE-0 test restaurant #5: write attempts on KSDD ids (codes {"404":8}) leave KSDD unchanged
+  PASS READ-1 test restaurant #6: 2415 GET calls on 69 routes with KSDD ids/names (codes {"404":388,"200":1853,"400":174})
+  PASS WRITE-1 test restaurant #6: write attempts on KSDD ids (codes {"404":8}) leave KSDD unchanged
+
+Test restaurants suspended (delete them in Super Admin → Restaurants when done).
+RESULT: 4 passed, 0 failed

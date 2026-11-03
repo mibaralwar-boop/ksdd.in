@@ -23,7 +23,8 @@ PART A · STEP 1 — new files, config OUTSIDE public_html, not converted, platf
   PASS health-check: config + private storage outside the web root
 PART A · STEP 2 — conversion (dry run → apply) with reconciliation
   PASS dry run
-     Converted 129 tables in 8.2s. Verification: 129 OK, 0 mismatch.
+  PASS production environment: conversion refused without --owner-approved-live
+     Converted 129 tables in 7.2s. Verification: 129 OK, 0 mismatch.
      Financial reconciliation: 243 totals compared, 0 difference(s) · GL: 40 journals, unbalanced 0 → 0, debits 2445721/2445721, credits 2445721/2445721 OK
   PASS conversion verified + reconciled
   PASS reports in ksdd_private/logs (outside the web root)
@@ -45,12 +46,16 @@ PART A · STEP 3 — single_db + platform ON: website, registration, Super Admin
   PASS new restaurant has its own 4 departments
   PASS new owner cannot open KSDD (403)
   PASS no database created for the new restaurant
+  PASS web + Super Admin sessions stored in ksdd_private/sessions (9 files), not the shared PHP default
+  PASS production cookie names DHABA_OPS / F360_PADMIN
 PART B · nested staging layout (public_html/staging + staging_private via SetEnv F360_PRIVATE_DIR)
   PASS staging site reads its config from staging_private via SetEnv (health 200)
   PASS /staging/config.php not served (403)
   PASS /staging/lib.php not served (403)
   PASS /staging/platform/mt.php not served (403)
   PASS /staging/tools/v31-convert.php not served (403)
+  PASS staging uses its own cookie name (F360_STAGING) and staging_private/sessions
+  PASS a production session id does not exist in staging's session store (no cross-environment replay)
   PASS CLI with F360_PRIVATE_DIR uses staging_private
 
-RESULT: 48 passed, 0 failed   (work dir /tmp/tmp.tlvVp9LiSz)
+RESULT: 53 passed, 0 failed   (work dir /tmp/tmp.8b4JtXU9rU)

@@ -1,8 +1,8 @@
   business rows before: 14245
   PASS dry run writes nothing
   PASS database unchanged after dry run
-     Registered founding restaurant: tenant #1, branch #1 (uid qjpgaah3qggn), users 9
-     Converted 129 tables in 8.6s. Verification: 129 OK, 0 mismatch.
+     Registered founding restaurant: tenant #1, branch #1 (uid ei9nssmw7raw), users 9
+     Converted 129 tables in 7.4s. Verification: 129 OK, 0 mismatch.
      Financial reconciliation: 243 totals compared, 0 difference(s) · GL: 40 journals, unbalanced 0 → 0, debits 2445721/2445721, credits 2445721/2445721 OK
   PASS every table verified (row count + SHA-256)
   PASS financial totals identical before/after
