@@ -72,7 +72,8 @@ function p_setting(string $k): string {
 }
 function p_setting_set(string $k, string $v): void { prun('INSERT INTO p_settings(k,v) VALUES(?,?) ON DUPLICATE KEY UPDATE v=VALUES(v)', $k, $v); }
 /** Public sign-up needs BOTH the config switch and the Super Admin setting (V29 §19: never before isolation is proven). */
-function p_signup_open(): bool { return !empty(pcfg()['signup_enabled']) && p_setting('signup_enabled') === '1'; }
+function p_signup_open(): bool { if (PHP_SAPI === 'cli' && !empty($GLOBALS['P_CLI_SIGNUP'])) return true; // staging-isolation-check only (CLI, never web)
+    return !empty(pcfg()['signup_enabled']) && p_setting('signup_enabled') === '1'; }
 
 /* ------------------------------ audit ------------------------------ */
 function p_audit(string $actorType, ?int $actorId, ?int $tenantId, string $action, array $detail = []): void {

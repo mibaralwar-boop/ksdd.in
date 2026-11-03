@@ -43,8 +43,8 @@ $before = $fingerprint();
 echo "Staging database " . cfg()['db_name'] . " · KSDD branch $KB · " . count($secrets) . " real KSDD names used as leak detectors\n";
 
 // ---- two throw-away restaurants through the real registration code ----
-$wasOpen = p_setting('signup_enabled'); p_setting_set('signup_enabled', '1');
-register_shutdown_function(function () use ($wasOpen) { p_setting_set('signup_enabled', (string)($wasOpen ?? '0')); $e = error_get_last(); if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) fwrite(STDERR, "STOPPED: {$e['message']} ({$e['file']}:{$e['line']})\nSelf-registration closed again.\n"); });
+$GLOBALS['P_CLI_SIGNUP'] = true; // registration stays closed for the website; only this CLI run may create the two test restaurants
+register_shutdown_function(function () { $e = error_get_last(); if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) fwrite(STDERR, "STOPPED: {$e['message']} ({$e['file']}:{$e['line']})\n"); });
 $att = [];
 try {
     foreach (['A', 'B'] as $x) {
@@ -55,7 +55,7 @@ try {
         p_verify_email($m[1]); prun("UPDATE p_registrations SET status='verified' WHERE uid=? AND status='draft'", $r['registration']); $t = reg_provision($r['registration']);
         $att[] = [$email, $pw, (int)$t['id']];
     }
-} finally { p_setting_set('signup_enabled', (string)($wasOpen ?? '0')); }
+} finally { $GLOBALS['P_CLI_SIGNUP'] = false; }
 
 function api(string $m, string $path, array $q = [], ?array $body = null, ?string $tok = null): array { global $BASE;
     $ch = curl_init($BASE . '/api/v1/index.php?' . http_build_query(['__path' => $path] + $q)); $h = ['Content-Type: application/json']; if ($tok) $h[] = 'Authorization: Bearer ' . $tok;
