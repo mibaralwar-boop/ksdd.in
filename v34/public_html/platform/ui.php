@@ -51,4 +51,5 @@ function ui_post(callable $fn, string $redirect): void {
 }
 function ui_old(): void { if (!empty($_SESSION['old_post']) && ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') { $_POST = $_SESSION['old_post'] + $_POST; } unset($_SESSION['old_post']); }
 function ui_file_b64(string $name): ?array { $f = $_FILES[$name] ?? null; if (!$f || ($f['error'] ?? 4) === 4) return null; if ($f['error'] !== 0 || !is_uploaded_file($f['tmp_name'])) fail('Upload failed. Try a smaller image.'); return ['data' => base64_encode((string)file_get_contents($f['tmp_name'])), 'name' => (string)$f['name']]; }
-function ui_boot(): void { security_headers(); start_session(); p_lang(); ui_old(); }
+function ui_boot(): void { if (!platform_mode()) { header('Location: index.php', true, 302); exit; } // single-restaurant mode: platform pages are off (were 500)
+    security_headers(); start_session(); p_lang(); ui_old(); }
