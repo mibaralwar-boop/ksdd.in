@@ -1,0 +1,200 @@
+Converted 81 tables in 5.3s. Verification: 81 OK, 0 mismatch.
+
+== Migration & preservation ==
+  PASS MIG-01 V16 migration applied (v13)
+  PASS MIG-02 No legacy dd_* table lost rows
+  PASS MIG-03 Legacy financial / POS / reservation rows byte-identical
+  PASS MIG-04 Re-running migration is a no-op
+  PASS STA-01 Exactly four departments: Management, UT, Kitchen, Waiter
+  PASS STA-02 Legacy "Gaurd" mapped to Guard inside Waiter
+  PASS STA-02b Every legacy employee mapped; salary rate history seeded
+
+== Business dates & reminders (Asia/Kolkata) ==
+  PASS DATE-01 06:00 popup threshold, target = yesterday
+  PASS PAY-01 Salary reminder on 1st from 06:00 for previous month (Feb/leap/year end)
+
+== Morning Closing ==
+  PASS FIN-05 Operational difference: positive = Cash Acess, negative = Cash Short, zero = Balanced
+  PASS ACC-02 Card & UPI never enter expected drawer cash
+  PASS FIN-02 Counter gets ONE consolidated popup after 06:00; snooze hides it
+  PASS FIN-01 Counter saves Cash/Card/UPI draft; total computed
+  PASS FIN-03 Submit blocked until expenses reviewed and Actual Cash entered
+  PASS EXP-01 Counter adds expense for the open target day; duplicate is detected
+  PASS FIN-03b "No expenses" cannot be confirmed when expenses exist
+  PASS SEC-03 Counter cannot enter data two days back or for future
+  PASS TST-02 Stale version → conflict (two devices)
+  PASS FIN-04 Reason required for large difference
+  PASS FIN-06 Final submit locks day and posts each sale tender to Books exactly once
+  PASS TST-02b Replay with same key returns stored result; second user cannot double close
+  PASS FIN-07 Closed day is read-only for counter (sales, expenses) and history still visible
+  PASS FIN-08 Correction request → admin reopen (revision 2, old postings voided, history kept)
+  PASS FIN-09 Admin review posts accounting variance once (not as sales income)
+  PASS FIN-09b After posting accounting variance, Books cash equals counted cash
+  PASS FIN-10 Held sales when Books already has sales for the day (no double counting)
+
+== Permissions (server-side) ==
+  PASS SEC-01 Counter template: closing yes; payroll / staff / users / accounts no
+  PASS SEC-01b Per-user override grants / removes a single permission
+  PASS SEC-01c Kitchen role (V17.1: old modules archived) gets Store-clerk rights only — no money, staff or salary access
+  PASS SEC-01d Last owner cannot be removed; non-owner cannot create owner
+
+== Staff master ==
+  PASS STA-03 Create staff with department/designation/bank (encrypted, masked)
+  PASS STA-10 Bulk joining date fills only empty dates
+  PASS STA-02c Guard designation cannot be created outside Waiter; designation must match department
+  PASS STA-04 Salary change needs effective date; history kept; transfer recorded
+
+== Staff entries ==
+  PASS STA-04b Advance paid immediately: one Books cash entry, ledger balance up, NOT an expense in P&L
+  PASS STA-05 Penalty stays pending (not deductible) until approved
+  PASS STA-06 Overtime paid now: Books entry once; unpaid OT tracked separately
+  PASS STA-07 Payroll addition (not paid now) approved for next salary
+  PASS STA-08 Payroll preparer cannot approve; pending advance not posted to cash
+
+== Monthly Salary Wizard ==
+  PASS PAY-02 Open Oct-2026: lines for working staff, part-month joiner prorated, legacy B/F carried
+  PASS PAY-03 V19 six fields: half day + paid leave, unpaid computed, ledger penalty & advance prefilled, OT info only (hand-checked)
+  PASS PAY-03b No double counting: present 30 + paid leave 1 (31-day month) = 31 paid days = full basic
+  PASS PAY-03d V19 spec example: ₹15,500, 31 days, 28 present + 1 paid leave + 2 absent → earned ₹14,500; advance ₹2,000 + penalty ₹500 → net ₹12,000
+  PASS PAY-13 Actual calendar-day divisor: 28-day Feb, 29-day leap Feb, 30 and 31-day months; half day = ½ day
+  PASS PAY-03e Mid-month joiner: only eligible days are accounted, divisor stays the full month (16 of 31 days of ₹15,500 = ₹8,000)
+  PASS PAY-03c Days must add up to the eligible days; incomplete entry cannot be marked Completed
+  PASS PAY-03f Absent is not typed: only Present is needed; empty half days / paid leave = 0; absent = days − present − half − paid leave; too many days refused
+  PASS PAY-08 Advance recovery capped at outstanding
+  PASS PAY-05 Skip / Add later leave pending state; submit blocked while open
+  PASS PAY-06 Drafts persist server-side per employee (resume on another device)
+  PASS PAY-04 Complete all staff (wizard order Management → UT → Kitchen → Waiter); submit
+  PASS PAY-07 Four department sheets + master: grand total = sum of departments = sum of lines
+  PASS PAY-09 Approve applies approved penalty + advance recovery exactly once; pending penalty untouched
+  PASS PAY-10 Partial + multiple payments; overpay blocked; each posts once to Books
+  PASS PAY-14 Pay all balances: one payment per person, repeat click does not pay twice
+  PASS ACC-03 OT already paid is never in gross/net; staff cash out counted once in cashbook
+  PASS PAY-11 Exports: XLSX (5 sheets) and PDF are valid files
+  PASS PAY-12 Next month carries the unpaid balance forward; unlock blocked while next month approved
+  PASS PAY-09b Unlock (with reason) reverses applied penalty/recovery; re-approve applies once again
+  PASS STA-09 Reversal blocked once applied in salary; allowed for unapplied entry
+  PASS STA-11 Advance above 50% of salary needs a written reason; with reason it is saved and the reason recorded
+  PASS FIN-11 Petpooja upload: figures offered for pre-fill and a difference raises a review warning
+
+== Assistant, reports, audit ==
+  PASS UI-02 Smart assistant separates blocking vs review items
+  PASS RPT-01 Monthly report: Cash Acess label, closings summary, P&L excludes staff advance
+  PASS SEC-04 Every money action wrote an audit row
+
+== V17 · Users & permissions ==
+  PASS V17-PERM-01 Only the owner can grant permissions (a user manager without owner role is blocked)
+  PASS V17-PERM-02 Counter cannot open purchases, suppliers or stock
+  PASS V17-PERM-03 Store clerk: may create items/drafts, may NOT set opening balance, adjust stock or pay
+
+== V17 · Item master & unit conversions ==
+  PASS V17-UNIT-01 Conversions: 2.5 kg, 250 g→0.25 kg, 3 cartons×24 = 72 pcs, 1 bag = 25 kg
+  PASS V17-UNIT-02 Pack size is never assumed (bag on rice is refused until defined)
+  PASS V17-UNIT-03 Decimal quantity: max 3 decimals, no negatives
+  PASS V17-ITEM-01 Duplicate item name (any spacing / case) is refused with the existing item
+  PASS V17-ITEM-02 Base unit cannot change once stock moved; items are deactivated, never deleted
+
+== V17 · Supplier master ==
+  PASS V17-SUP-01 Duplicate supplier name / GSTIN refused; bad GSTIN / PAN rejected
+  PASS V17-SUP-02 PAN & bank account encrypted at rest, masked in API, code auto-assigned
+  PASS V17-SUP-03 Same mobile on another supplier asks for confirmation
+
+== V17 · Purchase bill: draft, totals, posting ==
+  PASS V17-PB-01 Server totals: subtotal 2,450.00 · line disc 194.00 · tax 5.00 · bill disc 100 · transport 50 · round −0.40 = 2,210.60
+  PASS V17-PB-02 Draft posts NOTHING: no Books entry, no stock movement
+  PASS V17-PB-03 Negative / impossible values rejected (discount > amount, negative qty, future invoice)
+  PASS V17-PB-04 Store clerk submit → waits for approval (nothing posted); clerk cannot approve; manager approves → posted
+  PASS V17-ACC-01 Credit purchase = ONE Books purchase (paid 0) → payable up by 2,210.60; cash untouched; not an expense entry
+  PASS V17-STK-01 Received with bill: exactly one receipt move per stock line; untracked lines skipped; value = cost
+  PASS V17-PB-05 Submit replay with same key = no second posting; editing a posted bill is refused
+  PASS V17-PB-06 Duplicate invoice (same supplier + invoice no + financial year) needs a reason; with reason it posts and the reason is kept
+  PASS V17-PB-07 No invoice number: internal ID used and flagged
+
+== V17 · Partial delivery ==
+  PASS V17-PD-01 Ordered 10, received 6 → Partial; then 4 → Received; quantities & value exact
+  PASS V17-PD-02 Over-receiving is refused; receive replay (same key) adds nothing
+
+== V17 · Supplier payments & allocation ==
+  PASS V17-PAY-01 Partial cash payment → bill Partial; UPI for the rest → Paid; each payment is ONE Books payment_out in its own account
+  PASS V17-PAY-02 Payment replay with the same key does not pay twice
+  PASS V17-PAY-03 Allocation above bill outstanding / above payment is refused
+  PASS V17-PAY-04 Advance on account, then allocated to a later bill (FIFO default for plain payments)
+  PASS V17-PAY-05 Per-user payment limit & payment-source rights enforced
+
+== V17 · Returns, credit notes, refunds ==
+  PASS V17-RET-01 Return 1 kg rice with ₹20 cash refund: stock −1 kg at cost; payable −(total−refund); cash +refund; ONE purchase_return
+  PASS V17-RET-02 Cannot return more than received-and-not-returned
+  PASS V17-RET-03 Credit note reduces payable, supplier extra charge increases it — no stock effect
+  PASS V17-RET-04 Advance refund from supplier comes into the chosen account
+
+== V17 · Stock movements, weighted average, counts ==
+  PASS V17-STK-02 Weighted average: 2.5 kg @105/kg (cost) + 1 kg @40 then issue — value proportional, exact paise, zero at zero qty
+  PASS V17-STK-03 Negative stock blocked by default; manager override (stock.adjust) is logged
+  PASS V17-STK-04 Ledger is read-only: manual movement corrected by reversal (opposite move), never edited
+  PASS V17-STK-05 Transfer between locations keeps quantity and value
+  PASS V17-CNT-01 Physical count: one open count per location, reasons required, approval posts one adjustment per difference
+  PASS V17-VAL-01 Valuation as of date = Σ ledger; equals current balances
+
+== V17 · Closed day, reversal, cut-over ==
+  PASS V17-CLS-01 Bill posting & cash payment dated on a closed day are refused (closed period untouched)
+  PASS V17-REV-01 Reverse bill: Books entry voided, received stock reversed, payments become advance; reversal refused once goods are used
+  PASS V17-CUT-01 After cut-over, legacy Books purchase / stock entry is redirected (no second stock system)
+  PASS V17-ACC-02 Supplier balance = opening + bills − payments − credits (Books) and matches open bills + other
+  PASS V17-ACC-03 GL rule for every Finance 360 Books entry (purchase, payment, refund, return, charge) is balanced
+
+== V17 · Uploads & file access ==
+  PASS V17-UPL-01 Upload: wrong type / oversize refused; random private file name
+  PASS V17-UPL-02 Bill photo: purchase viewer may open it, counter may not
+
+== V17 · Reports & alerts ==
+  PASS V17-RPT-01 Purchase register, aging buckets, stock movements, low stock & alerts
+  PASS V17-RPT-02 Value hidden from users without stock.valuation
+
+== V17 · V16 untouched ==
+  PASS V17-REG-01 Daily closing, expenses, staff entries & payroll rows unchanged by all V17 work
+PHP Warning:  file_get_contents(/tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/v34run/migrations/f360_v17_reconcile.sql): Failed to open stream: No such file or directory in /tmp/claude-0/-home-user-ksdd-in/b85cc590-9a42-5f6d-b541-eba2385ac74c/scratchpad/v34run/legacy_single_db/tests/v17_tests.php on line 189
+  PASS V17-REC-01 Reconciliation SQL (migrations/f360_v17_reconcile.sql): every check returns zero rows
+
+== V17 · Migration reconciliation & bigger bills ==
+  PASS V17-MIG-01 Cut-over opening stock = old Books stock (qty × last rate) the day before, copied once
+  PASS V17-MIG-02 Every pre-existing supplier balance is unchanged by the V17 migration (only new V17 postings move it)
+  PASS V17-PB-08 12-line bill with 2 photos + 1 PDF; hostile file name stored safely; draft resumed; retried save never duplicates
+
+== V17.1 · Old modules archived ==
+  PASS V17-ARC-01 Old modules: closed for staff, owner read-only, owner can reopen from Settings; no data touched
+  PASS V17-ARC-02 Kitchen / store / purchase staff get the Store-clerk template; housekeeping gets none
+
+== V17.2 · Admin control centre ==
+  PASS V17-CTL-01 Business profile, accounts (add / hide / no rename with history), categories (add / regroup / hide) — all audited
+  PASS V17-CTL-02 Stock setup: location add / rename only without history / remove only when empty; pack units; cost centres
+  PASS V17-CTL-03 Modules off removes rights for everyone (owner too) — menu & APIs agree; on again restores
+  PASS V17-CTL-04 Custom role: owner creates, assigns, edits (rights change at once), cannot delete while in use
+  PASS V17-CTL-05 Message templates: placeholders checked, reset to default; reminders switch alerts off
+
+== V19 · Category-wise salary (six fields, calendar days, autosave) ==
+  PASS V19-BUG-01 Root cause of blank staff list: joining date after the month hides staff — reported with reason; correcting it brings them onto the sheet; re-open never duplicates
+  PASS V19-BUG-02 Staff with no department are listed with the reason (never silently missing)
+  PASS V19-PAY-01 Autosave: partial values saved as Draft on the server (never Completed); skip keeps Pending / Draft; resume restores values
+  PASS V19-PAY-02 Two users editing the same staff: the stale save is refused (no silent overwrite)
+  PASS V19-PAY-03 Penalty: only approved penalties are offered; unticked one stays for a later month; unknown id refused; approval applies only the chosen one
+  PASS V19-PAY-04 Department sheets + master use the same server numbers; absent / paid-leave columns present
+  PASS V19-MIG-01 Migration moves a month still in draft to the V19 rule (calendar divisor), maps old leave fields and asks for review; approved months untouched
+
+== V17 · Volume ==
+      timings: {"suppliers":0.023,"items":0.027,"items_search":0.012,"bills":0.06,"register":0.233,"aging":0.22}
+  PASS V17-PERF-01 1,000 suppliers · 1,000 items · 10,000 bill lines: lists & reports under 2 s each
+
+== V20 · Integrations (mock Google Drive + AiSensy) ==
+  SKIP: mock server not running on 8399 — start: python3 scripts/mock_int.py 8399
+
+== V21.2 · One-click staff import + old salary months (record only) ==
+  PASS OC-01 One-click file is validated: no "Staff" sheet, a duplicate HR code, a future history month and a wrong section are refused; nothing is stored
+  PASS OC-02 Preview: existing staff matched by HR code + name, new people created, old months summarised (rows, linked by code, totals); reading changes nothing
+  PASS OC-03 Same HR code but a different name is never matched silently (needs review); a stored answer resolves it
+  PASS OC-04 Apply: staff created/updated; old months stored as record only, linked ONLY by HR code; salary, payments, advances, cash book and old register untouched
+  PASS OC-05 Salary history view: needs payroll permission; month tabs, totals, per-staff history; nothing editable
+  PASS OC-06 Same file again → same batch, nothing changes; answers from a 3-file import are never carried into a one-click batch
+  PASS OC-07 A corrected file replaces the old-month copy; undo restores the earlier copy; undoing the first import removes its staff and history
+  PASS COL-01 Mixed text collations (old vs new tables) are found and aligned to the database default; text is kept; the 1267 error disappears
+  PASS COL-02 Connection collation differs from the database (as on the live MariaDB 11.8 host): passed-in values vs typed-in text fail with 1267; the app's connection setup fixes it
+
+RESULT: 140 passed, 0 failed (140 tests)

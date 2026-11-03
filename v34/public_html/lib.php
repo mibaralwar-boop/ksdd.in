@@ -112,7 +112,10 @@ function start_session(): void {
     if (session_status()===PHP_SESSION_ACTIVE) return;
     if (!https_request()&&!local_request()) fail('Open this dashboard using HTTPS. Enable SSL in Hostinger first.',403);
     ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');ini_set('session.cookie_httponly','1');
-    session_name('DHABA_OPS');
+    // V34: sessions of each installation (production / staging) live in ITS OWN private folder, never in the hosting
+    // account's shared default — a session created on staging can therefore never be loaded by production (and vice versa).
+    $sp=private_root().'/sessions'; if(!is_dir($sp)) @mkdir($sp,0700,true); if(is_dir($sp)&&is_writable($sp)) ini_set('session.save_path',$sp);
+    session_name((cfg()['environment']??'production')==='staging'?'F360_STAGING':'DHABA_OPS');
     $base=rtrim(str_replace('\\','/',dirname($_SERVER['SCRIPT_NAME']??'/ops/index.php')),'/').'/';
     session_set_cookie_params(['lifetime'=>0,'path'=>$base,'secure'=>https_request(),'httponly'=>true,'samesite'=>'Strict']);
     session_start();if(empty($_SESSION['csrf']))$_SESSION['csrf']=bin2hex(random_bytes(24));

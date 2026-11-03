@@ -10,7 +10,7 @@ cp -r "$HERE" "$W"; rm -rf "$W/tests" "$W/private"; cp -r "${KSDD_PRIVATE_SRC:-$
 mysql -e "DROP DATABASE IF EXISTS $DB; CREATE DATABASE $DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci" && mysqldump --single-transaction "$SRC_DB" | mysql "$DB"
 DBS0=$(mysql -N -e "SELECT COUNT(*) FROM information_schema.SCHEMATA")
 P=0; F=0; ok() { echo "  PASS $1"; P=$((P+1)); }; bad() { echo "  FAIL $1"; F=$((F+1)); }
-KEYS="'setup_key'=>'TEST-ONLY-setup-key-0123456789abcdef','pii_key'=>'TEST-ONLY-pii-key-0123456789abcdef0123','restaurant'=>'Khadak Singh Da Dhaba','environment'=>'staging'"
+KEYS="'setup_key'=>'TEST-ONLY-setup-key-0123456789abcdef','pii_key'=>'TEST-ONLY-pii-key-0123456789abcdef0123','restaurant'=>'Khadak Singh Da Dhaba','environment'=>'production'"
 PLAT() { echo "'platform'=>['enabled'=>$1,'key'=>'TEST-ONLY-platform-key-0123456789abcdef0123','base_url'=>'http://127.0.0.1:$PORT','support_email'=>'s@example.test','signup_enabled'=>true,'admin_mfa_required'=>true,'mail'=>['mode'=>'log'],'billing'=>['mode'=>'disabled']]"; }
 cfg() { echo "<?php return ['db_host'=>'127.0.0.1','db_port'=>3306,'db_name'=>'$DB','db_user'=>'f360','db_password'=>'stagingpw',$KEYS,$1];" > "$PRIV/config.php"; chown www-data "$PRIV/config.php"; }
 chmod 755 "$ROOT"; chmod -R a+rX "$W"
@@ -37,7 +37,8 @@ php_w tools/health-check.php > "$ROOT/h1.txt"; grep -q "OK   config.php outside 
 
 echo "PART A · STEP 2 — conversion (dry run → apply) with reconciliation"
 php_w tools/v31-convert.php | grep -q "DRY RUN" && ok "dry run" || bad "dry run"
-out=$(php_w tools/v31-convert.php --apply --i-have-a-backup 2>&1); echo "$out" | grep -E "Converted|Financial" | sed 's/^/     /'
+{ php_w tools/v31-convert.php --apply --i-have-a-backup 2>&1 || true; } | grep -q "owner-approved-live" && ok "production environment: conversion refused without --owner-approved-live" || bad "live guard"
+out=$(php_w tools/v31-convert.php --apply --i-have-a-backup --owner-approved-live 2>&1); echo "$out" | grep -E "Converted|Financial" | sed 's/^/     /'
 echo "$out" | grep -q "Verification: [0-9]* OK, 0 mismatch" && echo "$out" | grep -qE "[0-9]+ totals compared, 0 difference" && ok "conversion verified + reconciled" || bad "conversion"
 ls "$PRIV"/logs/v31-convert-*-reconciliation.md >/dev/null 2>&1 && ok "reports in ksdd_private/logs (outside the web root)" || bad "report location"
 TID=$(mysql -N -e "SELECT tenant_id FROM $DB.p_branches WHERE is_primary=1 ORDER BY id LIMIT 1"); BID=$(mysql -N -e "SELECT id FROM $DB.p_branches WHERE is_primary=1 ORDER BY id LIMIT 1")
@@ -66,12 +67,18 @@ S2=$(api POST tenants/select "{\"tenant_id\":${TID2:-0},\"branch_id\":${BID2:-0}
 [ "$(api GET departments "" "$TK2" | j "','.join(x['name'] for x in d['departments'])")" = "Management,UT,Kitchen,Waiter" ] && ok "new restaurant has its own 4 departments" || bad "departments"
 [ "$(api POST tenants/select "{\"tenant_id\":$TID,\"branch_id\":$BID}" "$TK2" | j "d.get('code')")" = FORBIDDEN ] && ok "new owner cannot open KSDD (403)" || bad "cross-tenant select"
 [ "$(mysql -N -e "SELECT COUNT(*) FROM information_schema.SCHEMATA")" = "$DBS0" ] && ok "no database created for the new restaurant" || bad "extra database"
+curl -s -c "$ROOT/prod.cookies" -o /dev/null "http://127.0.0.1:$PORT/signin.php"; curl -s -c "$ROOT/padmin.cookies" -o /dev/null "http://127.0.0.1:$PORT/platform-admin/"
+ls "$PRIV"/sessions/sess_* >/dev/null 2>&1 && ok "web + Super Admin sessions stored in ksdd_private/sessions ($(ls "$PRIV"/sessions | wc -l) files), not the shared PHP default" || bad "session location"
+grep -q DHABA_OPS "$ROOT/prod.cookies" && grep -q F360_PADMIN "$ROOT/padmin.cookies" && ok "production cookie names DHABA_OPS / F360_PADMIN" || bad "prod cookie names"
 
 echo "PART B · nested staging layout (public_html/staging + staging_private via SetEnv F360_PRIVATE_DIR)"
-SW="$W/staging"; SP="$ROOT/staging_private"; mkdir -p "$SW"; cp -r "$HERE"/. "$SW"/; rm -rf "$SW/tests" "$SW/private"; cp -r "$PRIV" "$SP"; rm -rf "$SP/logs"/*
+SW="$W/staging"; SP="$ROOT/staging_private"; mkdir -p "$SW"; cp -r "$HERE"/. "$SW"/; rm -rf "$SW/tests" "$SW/private"; cp -r "$PRIV" "$SP"; rm -rf "$SP/logs"/*; rm -rf "$SP/sessions"; sed -i "s/'environment'=>'production'/'environment'=>'staging'/" "$SP/config.php"
 printf '\n# STAGING: private folder outside every web root\nSetEnv F360_PRIVATE_DIR %s\n' "$SP" >> "$SW/.htaccess"; chmod -R a+rX "$SW"; srv
 c=$(code "http://127.0.0.1:$PORT/staging/api/v1/index.php?__path=health"); [ "$c" = 200 ] && ok "staging site reads its config from staging_private via SetEnv (health 200)" || { bad "staging health $c"; tail -3 "$ROOT/apache-error.log"; }
 for f in staging/config.php staging/lib.php staging/platform/mt.php staging/tools/v31-convert.php; do c=$(code "http://127.0.0.1:$PORT/$f"); { [ "$c" = 403 ] || [ "$c" = 404 ]; } && ok "/$f not served ($c)" || bad "/$f served ($c)"; done
+curl -s -c "$ROOT/stg.cookies" -o /dev/null "http://127.0.0.1:$PORT/staging/signin.php"
+grep -q F360_STAGING "$ROOT/stg.cookies" && ls "$SP"/sessions/sess_* >/dev/null 2>&1 && ok "staging uses its own cookie name (F360_STAGING) and staging_private/sessions" || bad "staging sessions"
+PSID=$(awk '$6=="DHABA_OPS"{print $7}' "$ROOT/prod.cookies"); [ -n "$PSID" ] && [ ! -e "$SP/sessions/sess_$PSID" ] && ok "a production session id does not exist in staging's session store (no cross-environment replay)" || bad "session replay"
 { (cd "$SW" && F360_PRIVATE_DIR="$SP" php tools/health-check.php) || true; } | grep -q "private storage outside the web root: $SP" && ok "CLI with F360_PRIVATE_DIR uses staging_private" || bad "staging CLI"
 
 apache2ctl stop >/dev/null 2>&1; a2dissite -q f360v34 >/dev/null

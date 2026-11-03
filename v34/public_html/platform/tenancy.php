@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // Finance 360 V29 — tenant / branch isolation and provisioning.
 //
-// ISOLATION MODEL (documented in docs/TENANT_ISOLATION.md):
+// ISOLATION MODEL (see docs/V34_TENANT_ISOLATION_REPORT.md; V31+: one database, platform/mt.php):
 //   Platform DB (control plane) → tenants, branches, users, memberships, billing.  NO financial rows.
 //   One ledger database PER BRANCH, created from the same schema as the original restaurant's database.
 //   A request can only ever hold a connection to ONE branch ledger, chosen here from the caller's verified

@@ -3,7 +3,7 @@ declare(strict_types=1);
 /* =====================================================================================================================
    Finance 360 V31 — ONE database for every restaurant (tenant) and branch.
 
-   HOW ISOLATION WORKS (docs/V31_SINGLE_DB_TENANCY.md has the full design):
+   HOW ISOLATION WORKS (docs/V34_TENANT_ISOLATION_REPORT.md describes the design and the V34 hardening):
    • Every legacy finance table `dd_x` / `f3_x` is converted ONCE into a base table `mt_dd_x` that carries
      tenant_id + branch_id (NOT NULL), and every unique key / primary key / foreign key is prefixed with them.
    • The old name `dd_x` becomes a VIEW:  SELECT <original columns> FROM mt_dd_x

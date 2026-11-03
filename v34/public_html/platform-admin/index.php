@@ -8,7 +8,10 @@ chdir(dirname(__DIR__));
 require dirname(__DIR__) . '/platform/ui.php';
 security_headers();
 if (!https_request() && !local_request()) { http_response_code(403); exit('HTTPS required'); }
-ini_set('session.use_strict_mode', '1'); ini_set('session.use_only_cookies', '1'); session_name('F360_PADMIN');
+ini_set('session.use_strict_mode', '1'); ini_set('session.use_only_cookies', '1');
+// V34: Super Admin sessions are stored in this installation's private folder (never shared between staging and production)
+$__sp = private_root() . '/sessions'; if (!is_dir($__sp)) @mkdir($__sp, 0700, true); if (is_dir($__sp) && is_writable($__sp)) ini_set('session.save_path', $__sp);
+session_name((cfg()['environment'] ?? 'production') === 'staging' ? 'F360_PADMIN_STAGING' : 'F360_PADMIN');
 session_set_cookie_params(['lifetime' => 0, 'path' => rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/platform-admin/index.php'), '/') . '/', 'secure' => https_request(), 'httponly' => true, 'samesite' => 'Strict']);
 session_start(); if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(24));
 $A = pa_current(); $pg = preg_replace('/[^a-z]/', '', (string)($_GET['p'] ?? 'home')) ?: 'home';

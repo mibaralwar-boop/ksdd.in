@@ -1,0 +1,35 @@
+== data isolation through the scoped views
+  PASS H01 each restaurant sees only its own row for the same key (per-tenant unique keys)
+  PASS H02 "OR 1=1", UNION and sub-queries cannot widen the view
+  PASS H03 restaurant B sees none of KSDD's employees
+  PASS H04 UPDATE / DELETE without WHERE only touch the own restaurant
+  PASS H05 tenant_id is not even a column of the app view (cannot be read or set)
+== statement guard (P0-2): base tables, context table, hidden SQL
+  PASS G-305 refuses plain: SELECT * FROM mt_dd_users
+  PASS G-342 refuses backticks: SELECT * FROM `mt_dd_users`
+  PASS G-388 refuses upper case: select * from MT_DD_USERS
+  PASS G-568 refuses join: SELECT u.* FROM dd_settings s JOIN mt_dd_users u ON 1
+  PASS G-219 refuses sub-query: SELECT (SELECT COUNT(*) FROM mt_dd_employees)
+  PASS G-014 refuses context rewrite: UPDATE mt_ctx SET tenant_id=1, branch_id=1 WHERE conn_id=CON
+  PASS G-550 refuses context replace: REPLACE INTO mt_ctx VALUES(CONNECTION_ID(),1,1,NOW())
+  PASS G-140 refuses context delete: DELETE FROM mt_ctx
+  PASS G-352 refuses executable comment: SELECT 1 /*!50000 , (SELECT password FROM mt_dd_users LIMIT 
+  PASS G-264 refuses MariaDB executable comment: SELECT 1 /*M!100000 , 2 */
+  PASS G-335 refuses stacked statements: SELECT 1; UPDATE dd_settings SET value=1
+  PASS G-045 refuses direct base write: INSERT INTO mt_dd_settings(`key`,value,tenant_id,branch_id) 
+  PASS G-644 refuses registry: SELECT * FROM mt_tables
+  PASS G-748 refuses copy via temp table: CREATE TEMPORARY TABLE x AS SELECT * FROM mt_dd_users
+  PASS G-536 refuses join context: SELECT * FROM information_schema.TABLES t JOIN mt_ctx c
+  PASS G-OK normal statements with mt_ inside strings / comments are allowed
+  PASS H06 after every refused attempt the context is still B (database view of the scope)
+== INSERT rewriting
+  PASS H07 application cannot choose tenant_id / branch_id on INSERT
+  PASS H08 INSERT without a column list is refused (would bypass the rewriter)
+== missing / stale context (fail closed)
+  PASS H09 a new connection has NO scope: views return zero rows, writes refused
+  PASS H10 a stale context row of a dead connection is purged
+  PASS H11 scope cannot change inside an open transaction
+  PASS H12 scope is re-verified from the database after it is set
+  PASS H13 the platform connection (scope 0/0) sees no restaurant rows
+
+RESULT: 29 passed, 0 failed

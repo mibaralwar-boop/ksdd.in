@@ -1,0 +1,20 @@
+  business rows before: 14245
+  PASS dry run writes nothing
+  PASS database unchanged after dry run
+     Registered founding restaurant: tenant #1, branch #1 (uid qjpgaah3qggn), users 9
+     Converted 129 tables in 8.6s. Verification: 129 OK, 0 mismatch.
+     Financial reconciliation: 243 totals compared, 0 difference(s) · GL: 40 journals, unbalanced 0 → 0, debits 2445721/2445721, credits 2445721/2445721 OK
+  PASS every table verified (row count + SHA-256)
+  PASS financial totals identical before/after
+  PASS GL journals balanced (debits = credits) before and after
+  PASS reconciliation report written to the PRIVATE logs folder
+  PASS --verify in converted mode: 0 mismatch
+  PASS app (single-DB mode) reads all 667 KSDD cash-book transactions through the scoped view
+  PASS re-running the conversion is a no-op
+     129 tables checked, 0 mismatch(es)
+     Rolled back. Remove 'single_db' and 'single_db_scope' from config.php.
+  PASS rollback verified against the pre-conversion hashes
+  PASS after rollback every business row is identical to the pre-conversion dump (14245 rows)
+  PASS no base-table prefix or views left after rollback
+
+RESULT: 12 passed, 0 failed

@@ -1,0 +1,12 @@
+Marked KSDD rows: {"dd_employees":11,"dd_bk_parties":1,"dd_bk_txns":131}
+  PASS SWEEP-1265 ownerb@example.test (Bravo Kitchen, template owner): 2967 GET calls over 69 routes with KSDD ids → no KSDD data, no 5xx (codes {"404":470,"200":2284,"400":213})
+  PASS WRITE-1265 ownerb@example.test: 14 write attempts on KSDD ids (codes {"404":11,"400":3}) leave every KSDD row unchanged
+  PASS SWEEP-0852 ownera@example.test (Alpha Dhaba, template owner): 2967 GET calls over 69 routes with KSDD ids → no KSDD data, no 5xx (codes {"404":472,"200":2282,"400":213})
+  PASS WRITE-0852 ownera@example.test: 14 write attempts on KSDD ids (codes {"404":11,"400":3}) leave every KSDD row unchanged
+  PASS SWEEP-3523 cashier.a@example.test (Alpha Dhaba, template cash_counter): 2967 GET calls over 69 routes with KSDD ids → no KSDD data, no 5xx (codes {"404":125,"403":2197,"200":434,"400":211})
+  PASS WRITE-3523 cashier.a@example.test: 14 write attempts on KSDD ids (codes {"403":14}) leave every KSDD row unchanged
+  PASS CONTROL Control: KSDD owner sees the marker in its own staff list (detector works)
+  PASS CONTROL-2 Control: KSDD owner's own search finds the marker (search really searches)
+  PASS BACKUP Bravo Kitchen backup (129 tables, 197 rows): no KSDD marker, no platform (p_*) tables, only its own branch_id
+
+RESULT: 9 passed, 0 failed

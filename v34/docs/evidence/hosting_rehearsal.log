@@ -1,0 +1,56 @@
+PART A · STEP 1 — new files, config OUTSIDE public_html, not converted, platform OFF
+  PASS home page 200
+  PASS /config.php not served (403)
+  PASS /lib.php not served (403)
+  PASS /tenant_scope.php not served (404)
+  PASS /platform/mt.php not served (403)
+  PASS /platform/core.php not served (403)
+  PASS /f360/core.php not served (403)
+  PASS /tools/v31-convert.php not served (403)
+  PASS /tools/health-check.php not served (403)
+  PASS /migrations/v31_single_db_conversion_REFERENCE.sql not served (403)
+  PASS /migrations/f360_v17_reconcile.sql not served (403)
+  PASS /schema.sql not served (403)
+  PASS /docs/TEST_REPORT_PLATFORM.md not served (403)
+  PASS /KSDD-360-INSTALL.txt not served (403)
+  PASS /SALARY-REGISTER-INSTALL.txt not served (403)
+  PASS /api360.php not served (403)
+  PASS /books360.php not served (403)
+  PASS /cron.php not served (403)
+  PASS /platform-cron.php not served (403)
+  PASS /f360-cron.php not served (403)
+  PASS no config.php, private/ or staging/ inside public_html
+  PASS health-check: config + private storage outside the web root
+PART A · STEP 2 — conversion (dry run → apply) with reconciliation
+  PASS dry run
+     Converted 129 tables in 8.2s. Verification: 129 OK, 0 mismatch.
+     Financial reconciliation: 243 totals compared, 0 difference(s) · GL: 40 journals, unbalanced 0 → 0, debits 2445721/2445721, credits 2445721/2445721 OK
+  PASS conversion verified + reconciled
+  PASS reports in ksdd_private/logs (outside the web root)
+PART A · STEP 3 — single_db + platform ON: website, registration, Super Admin, /api/v1 on ONE domain
+  PASS health-check after conversion: OK (21 checks)
+  PASS visitors → website (site.php)
+  PASS GET /site.php → 200
+  PASS GET /signin.php → 200
+  PASS GET /register.php → 200
+  PASS GET /platform-admin/ → 200
+  PASS GET /api/v1/index.php?__path=health → 200
+  PASS KSDD owner: OLD password via /api/v1, sees 12 staff
+  PASS Super Admin opens self-registration
+  PASS self-registration accepted
+  PASS verification link (web) verifies the owner
+  PASS web verification provisioned the restaurant (tenant 2 / branch 2)
+  PASS 30-day trial active
+  PASS new restaurant sees 0 of KSDD's staff
+  PASS new restaurant has its own 4 departments
+  PASS new owner cannot open KSDD (403)
+  PASS no database created for the new restaurant
+PART B · nested staging layout (public_html/staging + staging_private via SetEnv F360_PRIVATE_DIR)
+  PASS staging site reads its config from staging_private via SetEnv (health 200)
+  PASS /staging/config.php not served (403)
+  PASS /staging/lib.php not served (403)
+  PASS /staging/platform/mt.php not served (403)
+  PASS /staging/tools/v31-convert.php not served (403)
+  PASS CLI with F360_PRIVATE_DIR uses staging_private
+
+RESULT: 48 passed, 0 failed   (work dir /tmp/tmp.tlvVp9LiSz)

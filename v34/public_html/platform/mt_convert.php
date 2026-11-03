@@ -133,7 +133,7 @@ function mtc_fk_is_composite(MtPDO $p, string $t, string $name): bool { return (
 
 /**
  * Undo the conversion (pre-launch rollback). Refuses when any row belongs to another tenant/branch — at that point the
- * only correct rollback is the backup restore described in docs/V31_MIGRATION_ROLLBACK.md.
+ * only correct rollback is the backup restore described in docs/V34_STAGING_GUIDE.md (Rollback).
  */
 function mtc_rollback(MtPDO $p, int $tenant, int $branch, ?callable $log = null): array {
     $log ??= fn(string $m) => null;
