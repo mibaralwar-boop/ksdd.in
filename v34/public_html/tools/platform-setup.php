@@ -8,7 +8,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 chdir(dirname(__DIR__));
 require 'platform/schema.php'; require_once 'platform/auth.php';
 $cmd = $argv[1] ?? 'status';
-$ask = function (string $q): string { fwrite(STDOUT, $q); if (DIRECTORY_SEPARATOR === '/' && posix_isatty(STDIN)) system('stty -echo'); $v = trim((string)fgets(STDIN)); if (DIRECTORY_SEPARATOR === '/' && posix_isatty(STDIN)) system('stty echo'); fwrite(STDOUT, "\n"); return $v; };
+$ask = function (string $q): string { fwrite(STDOUT, $q); if (DIRECTORY_SEPARATOR === '/' && posix_isatty(STDIN) && function_exists('system')) system('stty -echo'); $v = trim((string)fgets(STDIN)); if (DIRECTORY_SEPARATOR === '/' && posix_isatty(STDIN) && function_exists('system')) system('stty echo'); fwrite(STDOUT, "\n"); return $v; };
 try {
     switch ($cmd) {
         case 'migrate': $d = p_migrate(); echo $d ? 'Applied platform migrations: ' . implode(', ', $d) . "\n" : "Platform schema already current (v" . p_schema_version() . ")\n"; break;
