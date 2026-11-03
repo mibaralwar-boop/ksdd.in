@@ -9,7 +9,7 @@ DirectoryIndex index.php
     Header always unset X-Powered-By
     Header unset X-Powered-By
 </IfModule>
-<FilesMatch "^(config\.php|config\.example\.php|lib\.php|lib360\.php|api360\.php|finance360\.php|gl360\.php|xlsx360\.php|post360\.php|supplier360\.php|pos360\.php|report360\.php|salary360\.php|books360\.php|xls360\.php|migrations\.php|cron\.php|actions\.php|imports\.php|schema\.sql|README.*|.*\.(sql|log|json|sqlite|zip|bak|md|ps1))$">
+<FilesMatch "^(error_log|php_errorlog|\.user\.ini|config\.php|config\.example\.php|lib\.php|lib360\.php|api360\.php|finance360\.php|gl360\.php|xlsx360\.php|post360\.php|supplier360\.php|pos360\.php|report360\.php|salary360\.php|books360\.php|xls360\.php|migrations\.php|cron\.php|actions\.php|imports\.php|schema\.sql|README.*|.*\.(sql|log|json|sqlite|zip|bak|md|ps1))$">
     Require all denied
 </FilesMatch>
 
