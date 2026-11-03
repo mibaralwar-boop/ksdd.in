@@ -15,7 +15,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 chdir(dirname(__DIR__));
 require 'platform/register.php'; require_once 'f360/dispatch.php';
-$o = getopt('', ['base-url:', 'ksdd-branch:']); $BASE = rtrim((string)($o['base-url'] ?? ''), '/');
+$o = getopt('', ['base-url:', 'ksdd-branch:', 'quick']); $QUICK = isset($o['quick']); $T0 = microtime(true); $BASE = rtrim((string)($o['base-url'] ?? ''), '/');
 $PROD = 'u245900320_ksdd';
 if (($c = cfg())['db_name'] === $PROD) exit("Refusing: this is the PRODUCTION database ($PROD). Run on the staging copy only.\n");
 if (!mt_enabled() || !platform_mode()) exit("Refusing: single_db must be true and the platform enabled.\n");
@@ -45,6 +45,9 @@ echo "Staging database " . cfg()['db_name'] . " · KSDD branch $KB · " . count(
 // ---- two throw-away restaurants through the real registration code ----
 $GLOBALS['P_CLI_SIGNUP'] = true; // registration stays closed for the website; only this CLI run may create the two test restaurants
 register_shutdown_function(function () { $e = error_get_last(); if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) fwrite(STDERR, "STOPPED: {$e['message']} ({$e['file']}:{$e['line']})\n"); });
+$old = (int)pval("SELECT COUNT(*) FROM p_tenants WHERE name LIKE 'ISOLATION CHECK % (delete me)' AND status<>'suspended'");
+if ($old) { prun("UPDATE p_tenants SET status='suspended' WHERE name LIKE 'ISOLATION CHECK % (delete me)'"); echo "  suspended $old test restaurant(s) left by an interrupted earlier run\n"; }
+echo "  this takes about 10–30 minutes on shared hosting (use --quick for a ~3 minute version); progress is printed every 200 calls\n";
 $att = [];
 try {
     foreach (['A', 'B'] as $x) {
@@ -53,7 +56,7 @@ try {
         $b = (string)pval('SELECT body FROM p_outbox WHERE recipient=? AND kind=? ORDER BY id DESC LIMIT 1', $email, 'verify');
         if (!preg_match('/token=([A-Za-z0-9_-]{20,})/', $b, $m)) throw new RuntimeException('No verification e-mail in p_outbox (set platform.mail.mode = log on staging while testing).');
         p_verify_email($m[1]); prun("UPDATE p_registrations SET status='verified' WHERE uid=? AND status='draft'", $r['registration']); $t = reg_provision($r['registration']);
-        $att[] = [$email, $pw, (int)$t['id']];
+        $att[] = [$email, $pw, (int)$t['id']]; echo "  test restaurant $x = #{$t['id']} created\n";
     }
 } finally { $GLOBALS['P_CLI_SIGNUP'] = false; }
 
@@ -71,7 +74,9 @@ foreach ($att as $i => [$email, $pw, $tid]) {
         $params = [[], ['period' => date('Y-m', strtotime('-1 month'))], ['from' => '2020-01-01', 'to' => '2030-12-31']];
         foreach (array_slice($secrets, 0, 6) as $s) $params[] = ['q' => (string)$s];
         foreach ($K as $kind => $list) foreach ($list as $id) { $params[] = ['id' => $id]; $params[] = [$kind . '_id' => $id]; }
+        if ($QUICK) $params = array_slice($params, 0, 12);
         foreach ($params as $q) { [$c, $b] = api('GET', 'f360/' . $route, $q, null, $tok); $calls++; $codes[$c] = ($codes[$c] ?? 0) + 1;
+            if ($calls % 200 === 0) echo "    … restaurant " . ($i + 1) . "/2: $calls calls, " . (int)(microtime(true) - $T0) . "s so far\n";
             $jj = json_decode($b, true); if (is_array($jj) && isset($q['q']) && ($jj['q'] ?? null) === $q['q']) { unset($jj['q']); $b = json_encode($jj, JSON_UNESCAPED_UNICODE); }
             foreach ($secrets as $s) if ($s !== '' && mb_stripos($b, (string)$s) !== false) { $leaks[] = "$route " . json_encode($q) . " → «$s»"; break; }
             if ($c >= 500) $leaks[] = "HTTP $c on $route " . json_encode($q); }
