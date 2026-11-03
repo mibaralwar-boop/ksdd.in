@@ -2,6 +2,25 @@
 declare(strict_types=1);
 require __DIR__.'/lib.php';
 security_headers();
+// V34: an EXISTING installation whose config.php was not found must never be offered "first-time setup".
+// Explain where the settings file must be and point at a misplaced copy instead (paths shown relative to the domain folder).
+if(!configured()){
+    $dom=dirname(__DIR__); $rel=fn(string $p)=>ltrim(substr($p,strlen($dom)),'/');
+    $misplaced=[];
+    foreach([__DIR__.'/ksdd_private/config.php',__DIR__.'/FINANCE360_V34/ksdd_private/config.php',$dom.'/FINANCE360_V34/ksdd_private/config.php',__DIR__.'/private/config.php',__DIR__.'/ksdd_private/config.example.php'] as $f) if(is_file($f)) $misplaced[]=$rel($f);
+    $oldInstall=is_dir(__DIR__.'/private/uploads')||is_dir($dom.'/ksdd_private/uploads');
+    http_response_code(503); header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Settings file not found</title>'
+       .'<body style="font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 18px;line-height:1.55;color:#1b2b24"><h1>Settings file not found</h1>'
+       .'<p>The website files are in place, but the database settings file <b>config.php</b> was not found, so the site cannot open your existing data. <b>Your data is not lost.</b> Do not run a new installation.</p>'
+       .'<p>Put your existing <b>config.php</b> (database name, user, password, setup_key, pii_key) in <b>one</b> of these places:</p><ol>'
+       .'<li><code>'.htmlspecialchars($rel($dom.'/ksdd_private/config.php')).'</code> — recommended: a folder <b>next to</b> public_html, not inside it</li>'
+       .'<li><code>'.htmlspecialchars($rel(__DIR__.'/config.php')).'</code> — the old location (still accepted)</li></ol>'
+       .($misplaced?'<p style="background:#fff3cd;padding:10px;border-radius:8px">Found in the wrong place: <code>'.htmlspecialchars(implode('</code>, <code>',$misplaced)).'</code><br>Move <b>config.php</b> (not config.example.php) to the location in step 1 and delete the misplaced folder from public_html.</p>':'')
+       .'<p>No copy of your old config.php? Restore it from hPanel → Files → Backups (a backup from before the upload), or ask your developer to recreate it with the SAME setup_key and pii_key.</p>'
+       .($oldInstall?'<p>Existing uploads were found, which confirms this is an existing installation.</p>':'').'</body>';
+    exit;
+}
 if(platform_mode()){ http_response_code(404); exit('Not available in multi-restaurant mode. Restaurants are created by registration; platform admins use platform-admin/.'); }
 $error='';$done=false;$requirements=PHP_VERSION_ID>=80200&&extension_loaded('pdo_mysql');
 try {
