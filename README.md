@@ -1,13 +1,14 @@
-# Finance 360 — ksdd.in (one website, one backend, one database, many restaurants)
+# Finance 360 — ksdd.in (one website, one backend, one shared database, many restaurants)
 
-| Folder | Contents | Status |
-|---|---|---|
-| `site/public_html/` | V30 integrated website + backend + `/api/v1` + Super Admin (+ `tests/`, not uploaded) | All local suites pass (see report) |
-| `site/ksdd_private/` | Outside-web-root folder: config template, storage skeleton | — |
-| `site/docs/HOSTING_KSDD_IN.md` | Install, staging (`u245900320_appksdd`), production migration, rollback | Follow in order |
-| `site/docs/TEST_REPORT_V30.md` | What was tested and what is blocked | |
-| `flutter_source/` | Native Flutter Android app 0.30.0 | analyze clean, 22 unit/widget + 11 live API tests |
-| `releases/` | Hostinger ZIP, test-signed APK + AAB | Not deployed; test key — not for Play |
-| `backend_v29/`, `archive_v28/` | Supplied V29 release and V28 foundation, kept for reference | Superseded by `site/` |
+**Current version: V34** = your latest V31 source (`public_html_3.zip`) + V34 security, hosting and migration fixes.
 
-Nothing has been deployed to ksdd.in and the production database `u245900320_ksdd` has not been touched.
+| Folder | Contents |
+|---|---|
+| `v34/public_html/` | Website, owner portal, Super Admin, `/api/v1` (+ `tests/`, not uploaded) |
+| `v34/ksdd_private/` | Outside-web-root template: `config.example.php` (production), `config.staging.example.php`, storage folders |
+| `v34/docs/` | `V34_STAGING_GUIDE.md`, `V34_GO_NO_GO.md`, `V34_ISSUE_REGISTER.md`, `V34_TENANT_ISOLATION_REPORT.md`, `V34_FEATURE_CHECKLIST.md`, `evidence/` |
+| `releases/v34/` | `FINANCE360_V34.zip` (upload package) + Android 0.34.0 test-signed APK/AAB |
+| `flutter_source/` | Native Flutter Android app |
+| `site/`, `backend_v29/`, `archive_v28/`, `releases/*.zip/apk` (V30) | Superseded earlier versions, kept for reference only — do not install |
+
+Nothing has been deployed to ksdd.in or staging.ksdd.in; `u245900320_ksdd` and `u245900320_staging` were not touched.

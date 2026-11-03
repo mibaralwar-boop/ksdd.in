@@ -1,0 +1,17 @@
+config.php
+logs/*
+!logs/.htaccess
+sessions/
+uploads/*
+!uploads/.htaccess
+backups/*
+!backups/.htaccess
+exports/*
+!exports/.htaccess
+imports/*
+!imports/.htaccess
+platform/*
+!platform/.htaccess
+tenants/*
+!tenants/.htaccess
+*_fake_now.txt
